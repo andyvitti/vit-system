@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT Demo Hub</title>
+  <link rel="stylesheet" href="/assets/vit.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+</head>
+<body>
+  <main class="vit-container" style="padding-top:40px; padding-bottom:40px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:18px;">
+      <div>
+        <p class="vit-breadcrumbs">VIT <span>Demo</span></p>
+        <h1>Explore the VIT Neon Suite</h1>
+        <p style="color:var(--muted); max-width:560px;">Navigate through the Warehouse, Transport, and Portal experiences with the upgraded neon design system. Use this area to preview flows without changing production data.</p>
+      </div>
+      <img src="/assets/vit-logo.png" alt="VIT" style="width:70px; filter: drop-shadow(0 0 10px rgba(0,255,106,0.4));">
+    </div>
+
+    <div class="vit-grid">
+      <div class="vit-card">
+        <h3>Company Access</h3>
+        <p>Multi-step wizard for company users to reach WMS/TMS experiences.</p>
+        <button class="vit-button" onclick="window.location.href='/company.html'">Open Company Login</button>
+      </div>
+      <div class="vit-card">
+        <h3>WMS Dashboard</h3>
+        <p>Role-based warehouse control with inventory, picks, and settings.</p>
+        <button class="vit-button" onclick="window.location.href='/WMS/app.html'">Go to WMS</button>
+      </div>
+      <div class="vit-card">
+        <h3>Picker App</h3>
+        <p>Swipe-focused picking UI for warehouse pickers.</p>
+        <button class="vit-button" onclick="window.location.href='/WMS/pickerapp.html'">Launch Picker</button>
+      </div>
+      <div class="vit-card">
+        <h3>Driver App</h3>
+        <p>Stage-based delivery flow with vehicle checks and swipe actions.</p>
+        <button class="vit-button" onclick="window.location.href='/TMS/driversapp.html'">Launch Driver</button>
+      </div>
+      <div class="vit-card">
+        <h3>Company Admin</h3>
+        <p>Manage warehouses and users with admin permissions.</p>
+        <button class="vit-button" onclick="window.location.href='/WMS/companyadmin.html'">Open Admin Panel</button>
+      </div>
+      <div class="vit-card">
+        <h3>Super Admin Portal</h3>
+        <p>Global multi-tenant controls for VIT operators.</p>
+        <button class="vit-button" onclick="window.location.href='/VIT_PORTAL/vit-portal-login.html'">Portal Login</button>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
