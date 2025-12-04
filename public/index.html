@@ -1,225 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>VIT – Login</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<!-- Global VIT Theme -->
+<link rel="stylesheet" href="/assets/vit.css">
 
-<style>
-:root{
-  --bg:#04070a;
-  --panel:#0a0f14;
-  --accent:#22c55e;
-  --accent-soft:#16452a;
-  --text:#e8eef5;
-  --line:#1f2937;
-  --danger:#f87171;
-}
-
-body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:Inter,system-ui,sans-serif;
-  height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.container{
-  width:100%;
-  max-width:420px;
-  padding:30px;
-  background:var(--panel);
-  border-radius:14px;
-  border:1px solid #22c55e33;
-  box-shadow:0 0 40px #22c55e22;
-  text-align:center;
-}
-
-.logo img{
-  width:160px;
-  margin-bottom:30px;
-}
-
-input{
-  width:100%;
-  padding:14px;
-  margin-top:14px;
-  border-radius:8px;
-  background:transparent;
-  border:2px solid var(--accent);
-  color:var(--text);
-  font-size:16px;
-  outline:none;
-}
-
-input:focus{
-  box-shadow:0 0 14px #22c55e55;
-}
-
-button.login-btn{
-  width:100%;
-  padding:14px;
-  margin-top:20px;
-  border-radius:8px;
-  border:none;
-  background:var(--accent);
-  color:#000;
-  font-weight:800;
-  cursor:pointer;
-  font-size:16px;
-}
-
-button.login-btn:hover{
-  background:#16a34a;
-}
-
-.error{
-  margin-top:12px;
-  color:var(--danger);
-  font-size:14px;
-}
-</style>
-
-<!-- FIREBASE -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-<script>
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyCxJ_K3VqK_xG10czTYiVtUDqHs5-mkM34",
-  authDomain: "warehouse-management-sys-fe316.firebaseapp.com",
-  projectId: "warehouse-management-sys-fe316",
-  storageBucket: "warehouse-management-sys-fe316.appspot.com",
-  messagingSenderId: "386376589251",
-  appId: "1:386376589251:web:79ace33d41cbbdd4d92776"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// ===================== LOGIN ======================
-
-async function login(){
-  const companyId = document.getElementById("companyId").value.trim();
-  const username  = document.getElementById("username").value.trim();
-  const password  = document.getElementById("password").value.trim();
-  const errorBox  = document.getElementById("errorBox");
-
-  errorBox.textContent = "";
-
-  if(!companyId || !username || !password){
-    errorBox.textContent = "All fields are required.";
-    return;
-  }
-
-  try {
-    // Get warehouses for the company
-    const whSnap = await db.collection("companies")
-      .doc(companyId)
-      .collection("warehouses")
-      .get();
-
-    if (whSnap.empty){
-      errorBox.textContent = "Company not found or has no warehouses.";
-      return;
-    }
-
-    let foundUser   = null;
-    let foundWhName = null;
-
-    // Search each warehouse for user
-    for (let wh of whSnap.docs){
-      const whName = wh.id;
-
-      const userRef = db.collection("companies")
-        .doc(companyId)
-        .collection("warehouses")
-        .doc(whName)
-        .collection("users")
-        .doc(username);
-
-      const userDoc = await userRef.get();
-
-      if (userDoc.exists){
-        foundUser   = userDoc.data();
-        foundWhName = whName;
-        break;
-      }
-    }
-
-    if (!foundUser){
-      errorBox.textContent = "User not found.";
-      return;
-    }
-
-    if (foundUser.password !== password){
-      errorBox.textContent = "Incorrect password.";
-      return;
-    }
-
-    // Save session
-    localStorage.setItem("vitCompany", companyId);
-    localStorage.setItem("vitWarehouse", foundWhName);
-    localStorage.setItem("vitUser", username);
-    localStorage.setItem("vitRole", foundUser.role);
-
-    // ================================
-    // 🚀 ROLE-BASED REDIRECTS
-    // ================================
-    if (foundUser.role === "admin") {
-      window.location.href = "companyadmin.html";
-      return;
-    }
-
-    if (foundUser.role === "manager") {
-      window.location.href = "app.html";
-      return;
-    }
-
-    if (foundUser.role === "picker") {
-      window.location.href = "app.html";
-      return;
-    }
-
-    if (foundUser.role === "driver") {
-      window.location.href = "driversapp.html";
-      return;
-    }
-
-    // fallback
-    window.location.href = "app.html";
-
-  } catch (err){
-    console.error(err);
-    errorBox.textContent = "Login failed. Try again.";
-  }
-}
-</script>
+<!-- Shared Firebase Config -->
+<script src="/assets/firebase-config.js"></script>
 
 </head>
 <body>
 
-<div class="container">
+<div class="vit-center" style="min-height:100vh;">
 
-  <div class="logo">
-    <img src="VIT-logo.png" alt="VIT Logo">
-  </div>
+    <div class="vit-card" style="width:360px; padding:30px; text-align:center;">
+        
+        <img src="/assets/vit-logo.png" alt="VIT Logo" style="width:150px; margin-bottom:25px;">
 
-  <input id="companyId" placeholder="Company ID">
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
+        <h2 class="vit-section-title" style="text-align:center; margin-bottom:20px;">
+            Welcome to VIT System
+        </h2>
 
-  <button class="login-btn" onclick="login()">Login</button>
+        <input id="companyId" class="vit-input" placeholder="Company ID">
+        <input id="username" class="vit-input" placeholder="Username">
+        <input id="password" class="vit-input" type="password" placeholder="Password">
 
-  <div class="error" id="errorBox"></div>
+        <button onclick="login()" class="vit-button" style="width:100%; margin-top:15px;">
+            Login
+        </button>
+
+        <div id="errorBox" style="color:#ef4444; margin-top:12px; font-size:14px;"></div>
+
+    </div>
 
 </div>
+
+<script>
+async function login() {
+    const companyId = document.getElementById("companyId").value.trim();
+    const username  = document.getElementById("username").value.trim();
+    const password  = document.getElementById("password").value.trim();
+    const errorBox  = document.getElementById("errorBox");
+
+    errorBox.textContent = "";
+
+    if (!companyId || !username || !password) {
+        errorBox.textContent = "All fields are required.";
+        return;
+    }
+
+    try {
+        // Load warehouses for company
+        const whSnap = await db.collection("companies")
+            .doc(companyId)
+            .collection("warehouses")
+            .get();
+
+        if (whSnap.empty) {
+            errorBox.textContent = "Company not found.";
+            return;
+        }
+
+        let foundUser = null;
+        let foundWarehouse = null;
+
+        for (let wh of whSnap.docs) {
+            const whName = wh.id;
+            const userRef = db.collection("companies")
+                .doc(companyId)
+                .collection("warehouses")
+                .doc(whName)
+                .collection("users")
+                .doc(username);
+
+            const userDoc = await userRef.get();
+
+            if (userDoc.exists) {
+                foundUser = userDoc.data();
+                foundWarehouse = whName;
+                break;
+            }
+        }
+
+        if (!foundUser) {
+            errorBox.textContent = "User not found.";
+            return;
+        }
+
+        if (foundUser.password !== password) {
+            errorBox.textContent = "Incorrect password.";
+            return;
+        }
+
+        // Save session
+        localStorage.setItem("vitCompany", companyId);
+        localStorage.setItem("vitWarehouse", foundWarehouse);
+        localStorage.setItem("vitUser", username);
+        localStorage.setItem("vitRole", foundUser.role);
+
+        // Redirect based on role
+        switch (foundUser.role) {
+            case "admin":
+                window.location.href = "/WMS/companyadmin.html";
+                break;
+            case "manager":
+            case "picker":
+                window.location.href = "/WMS/app.html";
+                break;
+            case "driver":
+                window.location.href = "/TMS/driversapp.html";
+                break;
+            default:
+                window.location.href = "/WMS/app.html";
+        }
+
+    } catch (err) {
+        console.error(err);
+        errorBox.textContent = "Login failed. Try again.";
+    }
+}
+</script>
 
 </body>
 </html>
