@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT System — Access</title>
+  <link rel="stylesheet" href="/assets/vit.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+</head>
+<body>
+  <main class="vit-container" style="display:flex; justify-content:center; align-items:center; min-height:90vh;">
+    <div class="vit-card" style="max-width:520px; width:100%; text-align:center;">
+      <img src="/assets/vit-logo.png" alt="VIT Logo" style="width:80px; margin-bottom:14px;" />
+      <h1>Welcome to VIT</h1>
+      <p style="color:var(--muted);">Unified access for Warehouse (WMS), Transport (TMS), and Portal operations.</p>
+      <div style="margin:18px 0; display:flex; flex-direction:column; gap:10px;">
+        <button class="vit-button" id="btn-company">Company Login</button>
+        <button class="vit-button secondary" id="btn-portal">Super Admin Portal</button>
+        <button class="vit-button secondary" id="btn-session" style="display:none;">Continue as <span id="session-user"></span></button>
+      </div>
+      <p class="vit-breadcrumbs" style="justify-content:center;">Need help? <span>support@vit.example</span></p>
+    </div>
+  </main>
+  <script>
+    const session = vit.loadSession();
+    const sessionBtn = document.getElementById('btn-session');
+    const sessionUser = document.getElementById('session-user');
+    if (session?.user && session?.role) {
+      sessionUser.textContent = `${session.user} (${session.role})`;
+      sessionBtn.style.display = 'inline-flex';
+    }
+    document.getElementById('btn-company').onclick = () => window.location.href = '/company.html';
+    document.getElementById('btn-portal').onclick = () => window.location.href = '/VIT_PORTAL/vit-portal-login.html';
+    sessionBtn.onclick = () => vit.roleRedirect();
+  </script>
+</body>
+</html>
