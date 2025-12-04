@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIT System — Company Access</title>
+  <link rel="stylesheet" href="/assets/vit.css" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 20% 20%, rgba(34, 197, 94, 0.08), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.07), transparent 30%),
+        #04070a;
+      padding: 24px;
+    }
+
+    .wizard-shell {
+      width: min(520px, 100%);
+    }
+
+    .wizard-card {
+      position: relative;
+      overflow: hidden;
+      transition: transform 220ms ease, box-shadow 220ms ease;
+    }
+
+    .wizard-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .wizard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 12px;
+    }
+
+    .wizard-steps {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .wizard-step {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      color: #9fb7a4;
+      background: rgba(10, 15, 20, 0.75);
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      transition: all 160ms ease;
+    }
+
+    .wizard-step.active {
+      color: #22c55e;
+      border-color: rgba(34, 197, 94, 0.7);
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35), 0 10px 30px rgba(34, 197, 94, 0.12);
+    }
+
+    .wizard-body {
+      display: grid;
+      gap: 14px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .actions .right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .error-text {
+      color: #f87171;
+      font-size: 13px;
+      min-height: 18px;
+    }
+
+    .warehouse-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .warehouse-option {
+      width: 100%;
+      justify-content: flex-start;
+      background: rgba(10, 15, 20, 0.85);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      transition: all 160ms ease;
+    }
+
+    .warehouse-option.active {
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.65), 0 12px 40px rgba(34, 197, 94, 0.16);
+      transform: translateY(-1px);
+    }
+
+    .muted {
+      color: #9fb7a4;
+      font-size: 14px;
+    }
+
+    .primary-title {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="wizard-shell">
+    <div class="vit-card wizard-card" id="wizard-card">
+      <!-- Dynamic content injected by script -->
+    </div>
+  </div>
+
+  <script src="/assets/firebase-config.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+    if (!window.firebaseConfig) {
+      console.warn("Firebase config is missing. Please ensure /assets/firebase-config.js defines window.firebaseConfig.");
+    }
+
+    const app = initializeApp(window.firebaseConfig || {});
+    const db = getFirestore(app);
+
+    const steps = [
+      { key: "company", label: "Company" },
+      { key: "companyPass", label: "Password" },
+      { key: "warehouse", label: "Warehouse" },
+      { key: "user", label: "User" }
+    ];
+
+    const state = {
+      stepIndex: 0,
+      companyId: "",
+      companyData: null,
+      companyPassword: "",
+      warehouses: [],
+      selectedWarehouse: "",
+      username: "",
+      password: "",
+      error: ""
+    };
+
+    const wizardCard = document.getElementById("wizard-card");
+
+    const stepTitles = [
+      "Enter your Company ID",
+      "Company Security",
+      "Choose Warehouse",
+      "Sign in"
+    ];
+
+    function renderSteps() {
+      return `
+        <div class="wizard-header">
+          <div>
+            <p class="muted">VIT System Access</p>
+            <h2 class="primary-title">${stepTitles[state.stepIndex]}</h2>
+          </div>
+          <div class="wizard-steps">
+            ${steps
+              .map(
+                (step, idx) => `
+                  <div class="wizard-step ${idx === state.stepIndex ? "active" : ""}">${idx + 1}. ${step.label}</div>
+                `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function setError(message = "") {
+      state.error = message;
+      const errorEl = wizardCard.querySelector(".error-text");
+      if (errorEl) {
+        errorEl.textContent = message;
+      }
+    }
+
+    function renderCompanyStep() {
+      return `
+        ${renderSteps()}
+        <div class="wizard-body">
+          <label class="muted" for="companyId">Company ID</label>
+          <input id="companyId" class="vit-input" placeholder="e.g. vit-industries" value="${state.companyId}" />
+          <div class="error-text">${state.error || ""}</div>
+          <div class="actions">
+            <span></span>
+            <div class="right">
+              <button class="vit-button" id="company-continue">Continue</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCompanyPasswordStep() {
+      return `
+        ${renderSteps()}
+        <div class="wizard-body">
+          <label class="muted" for="companyPassword">Company Password</label>
+          <input id="companyPassword" type="password" class="vit-input" placeholder="••••••" value="${state.companyPassword}" />
+          <div class="error-text">${state.error || ""}</div>
+          <div class="actions">
+            <button class="vit-button ghost" id="back-to-company">Back</button>
+            <div class="right">
+              <button class="vit-button" id="company-pass-continue">Continue</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderWarehouseStep() {
+      const options = state.warehouses
+        .map(
+          (warehouseId) => `
+            <button class="vit-button warehouse-option ${
+              state.selectedWarehouse === warehouseId ? "active" : ""
+            }" data-id="${warehouseId}">
+              ${warehouseId}
+            </button>
+          `
+        )
+        .join("") || `<p class="muted">No warehouses found for this company.</p>`;
+
+      return `
+        ${renderSteps()}
+        <div class="wizard-body">
+          <p class="muted">Select a warehouse to continue.</p>
+          <div class="warehouse-grid">${options}</div>
+          <div class="error-text">${state.error || ""}</div>
+          <div class="actions">
+            <button class="vit-button ghost" id="back-to-password">Back</button>
+            <div class="right">
+              <button class="vit-button" id="warehouse-continue" ${
+                state.selectedWarehouse ? "" : "disabled"
+              }>Continue</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUserStep() {
+      return `
+        ${renderSteps()}
+        <div class="wizard-body">
+          <label class="muted" for="username">Username</label>
+          <input id="username" class="vit-input" placeholder="user.name" value="${state.username}" />
+          <label class="muted" for="password">Password</label>
+          <input id="password" type="password" class="vit-input" placeholder="••••••" value="${state.password}" />
+          <div class="error-text">${state.error || ""}</div>
+          <div class="actions">
+            <button class="vit-button ghost" id="back-to-warehouse">Back</button>
+            <div class="right">
+              <button class="vit-button" id="user-login">Login</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const templates = [
+        renderCompanyStep,
+        renderCompanyPasswordStep,
+        renderWarehouseStep,
+        renderUserStep
+      ];
+      wizardCard.innerHTML = templates[state.stepIndex]();
+      attachEvents();
+    }
+
+    function attachEvents() {
+      switch (state.stepIndex) {
+        case 0: {
+          const input = wizardCard.querySelector("#companyId");
+          const btn = wizardCard.querySelector("#company-continue");
+          btn.addEventListener("click", handleCompanyLookup);
+          input?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") handleCompanyLookup();
+          });
+          break;
+        }
+        case 1: {
+          const input = wizardCard.querySelector("#companyPassword");
+          wizardCard.querySelector("#back-to-company").addEventListener("click", () => {
+            state.stepIndex = 0;
+            setError();
+            render();
+          });
+          wizardCard.querySelector("#company-pass-continue").addEventListener("click", handleCompanyPasswordVerify);
+          input?.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") handleCompanyPasswordVerify();
+          });
+          break;
+        }
+        case 2: {
+          wizardCard.querySelector("#back-to-password").addEventListener("click", () => {
+            state.stepIndex = 1;
+            setError();
+            render();
+          });
+          wizardCard.querySelectorAll(".warehouse-option").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              state.selectedWarehouse = btn.dataset.id || "";
+              render();
+            });
+          });
+          wizardCard.querySelector("#warehouse-continue")?.addEventListener("click", () => {
+            if (state.selectedWarehouse) {
+              state.stepIndex = 3;
+              setError();
+              render();
+            }
+          });
+          break;
+        }
+        case 3: {
+          const usernameInput = wizardCard.querySelector("#username");
+          const passwordInput = wizardCard.querySelector("#password");
+          wizardCard.querySelector("#back-to-warehouse").addEventListener("click", () => {
+            state.stepIndex = 2;
+            setError();
+            render();
+          });
+          wizardCard.querySelector("#user-login").addEventListener("click", handleUserLogin);
+          [usernameInput, passwordInput].forEach((input) => {
+            input?.addEventListener("keydown", (e) => {
+              if (e.key === "Enter") handleUserLogin();
+            });
+          });
+          break;
+        }
+      }
+    }
+
+    async function handleCompanyLookup() {
+      const companyId = (wizardCard.querySelector("#companyId").value || "").trim();
+      state.companyId = companyId;
+      setError();
+      if (!companyId) {
+        setError("Enter your company ID.");
+        return;
+      }
+      try {
+        const companyRef = doc(db, "companies", companyId);
+        const companySnap = await getDoc(companyRef);
+        if (!companySnap.exists()) {
+          setError("Company not found. Check the ID and try again.");
+          return;
+        }
+        state.companyData = companySnap.data();
+        state.stepIndex = 1;
+        render();
+      } catch (err) {
+        console.error(err);
+        setError("Unable to verify company right now. Please try again.");
+      }
+    }
+
+    async function handleCompanyPasswordVerify() {
+      const passwordInput = wizardCard.querySelector("#companyPassword");
+      const password = (passwordInput.value || "").trim();
+      state.companyPassword = password;
+      setError();
+      if (!password) {
+        setError("Enter the company password.");
+        return;
+      }
+      try {
+        const expected = state.companyData?.companyPassword;
+        if (!expected || expected !== password) {
+          setError("Incorrect company password.");
+          return;
+        }
+        await loadWarehouses();
+        state.stepIndex = 2;
+        render();
+      } catch (err) {
+        console.error(err);
+        setError("Unable to validate password right now.");
+      }
+    }
+
+    async function loadWarehouses() {
+      try {
+        const collectionRef = collection(db, "companies", state.companyId, "warehouses");
+        const snapshot = await getDocs(collectionRef);
+        state.warehouses = snapshot.docs.map((doc) => doc.id);
+        state.selectedWarehouse = "";
+      } catch (err) {
+        console.error(err);
+        setError("Unable to load warehouses. Try again.");
+      }
+    }
+
+    async function handleUserLogin() {
+      const username = (wizardCard.querySelector("#username").value || "").trim();
+      const password = (wizardCard.querySelector("#password").value || "").trim();
+      state.username = username;
+      state.password = password;
+      setError();
+      if (!username || !password) {
+        setError("Enter username and password.");
+        return;
+      }
+      try {
+        const userRef = doc(
+          db,
+          "companies",
+          state.companyId,
+          "warehouses",
+          state.selectedWarehouse,
+          "users",
+          username
+        );
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          setError("User not found for this warehouse.");
+          return;
+        }
+        const userData = userSnap.data();
+        if (userData.password !== password) {
+          setError("Incorrect password.");
+          return;
+        }
+        const role = userData.role || "";
+        localStorage.setItem("vitCompany", state.companyId);
+        localStorage.setItem("vitWarehouse", state.selectedWarehouse);
+        localStorage.setItem("vitUser", username);
+        localStorage.setItem("vitRole", role);
+
+        const destinations = {
+          admin: "/WMS/companyadmin.html",
+          manager: "/WMS/app.html",
+          picker: "/WMS/pickerapp.html",
+          driver: "/TMS/driversapp.html"
+        };
+        const target = destinations[role] || "/WMS/app.html";
+        window.location.href = target;
+      } catch (err) {
+        console.error(err);
+        setError("Unable to sign in right now. Please try again.");
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
