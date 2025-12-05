@@ -4,22 +4,21 @@
 The VIT System hosts multiple operational modules:
 - **WMS (Warehouse Management System):** Warehouse-facing pages and applications.
 - **TMS (Transport Management System):** Driver and transport workflows.
-- **HR:** Human resources front-end (placeholder).
-- **VIT Portal:** Super admin portal for multi-tenant oversight.
+- **HR:** Human resources front-end.
+- **VIT Portal:** Portal-facing login and portal pages.
 
-Current HTML, CSS, and JavaScript assets placed in `public/` are the source of truth for the neon-themed implementation. Logic rewrites and refactors will happen later; for now the files are preserved as-is.
+Current HTML, CSS, and JavaScript assets placed in `public/` are the source of truth from the existing implementation. Logic rewrites and refactors will happen later; for now the files are preserved as-is.
 
 ## Folder Structure
 ```
 public/
-  index.html           # Landing entry
-  company.html         # Multi-step company login
-  demo.html            # Demo entry point
-  assets/              # Shared static assets (styles, scripts, config, logo)
-  WMS/                 # Warehouse Management System pages
-  TMS/                 # Transport Management System pages
-  HR/                  # Human Resources placeholder
-  VIT_PORTAL/          # Super admin portal pages
+  assets/            # Shared static assets (e.g., images, configuration files)
+  WMS/               # Warehouse Management System pages
+  TMS/               # Transport Management System pages
+  HR/                # Human Resources pages
+  VIT_PORTAL/        # Portal-specific pages
+  index.html         # Root landing page
+  demo.html          # Demo entry point
 ```
 
 ## Deployment (Firebase Hosting)
@@ -29,7 +28,7 @@ public/
 4. Deploy the static site: `firebase deploy --only hosting`.
 
 ## Notes
-- Do not alter Firebase configuration values inside `public/assets/firebase-config.js`.
+- Do not alter Firebase configuration values or application logic until the rewrite phase.
 - Uploaded files inside `public/` represent the current production state and should remain unchanged unless explicitly updated later.
 
 ## License

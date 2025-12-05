@@ -6,44 +6,130 @@
   <title>VIT Super Admin Login</title>
   <link rel="stylesheet" href="/assets/vit.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/vit.js"></script>
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 20% 20%, rgba(34, 197, 94, 0.08), transparent 25%),
+        radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.08), transparent 22%),
+        #04070a;
+      padding: 24px;
+    }
+    .login-wrapper {
+      width: 100%;
+      max-width: 420px;
+    }
+    .logo {
+      display: block;
+      margin: 0 auto 16px;
+      width: 96px;
+      height: auto;
+      filter: drop-shadow(0 0 12px rgba(34, 197, 94, 0.4));
+    }
+    .login-card h1 {
+      text-align: center;
+      margin: 8px 0 4px;
+      font-size: 1.4rem;
+      letter-spacing: 0.02em;
+    }
+    .login-card p {
+      text-align: center;
+      margin: 0 0 18px;
+      opacity: 0.78;
+    }
+    .login-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+  </style>
 </head>
 <body>
-  <main class="vit-container" style="display:flex; justify-content:center; align-items:center; min-height:95vh;">
-    <div class="vit-card" style="max-width:460px; width:100%; text-align:center;">
-      <img src="/assets/vit-logo.png" alt="VIT" style="width:76px; margin-bottom:12px;">
-      <h2>Super Admin Portal</h2>
-      <p style="color:var(--muted);">Private access for VIT global admins.</p>
-      <div class="vit-form-row" style="margin-top:14px;">
-        <input class="vit-input" id="email" placeholder="Email">
-        <input class="vit-input" id="password" type="password" placeholder="Password">
+  <div class="login-wrapper">
+    <div class="vit-card login-card">
+      <img src="/assets/vit-logo.png" alt="VIT Logo" class="logo">
+      <h1>Super Admin Access</h1>
+      <p>Private portal for VIT global administrators.</p>
+      <label class="vit-input-label" for="email">Email</label>
+      <input class="vit-input" id="email" type="email" placeholder="admin@vitsystem.com" autocomplete="email" required>
+
+      <label class="vit-input-label" for="password">Password</label>
+      <input class="vit-input" id="password" type="password" placeholder="********" autocomplete="current-password" required>
+
+      <div class="login-actions">
+        <button class="vit-button" id="login-btn">Login</button>
       </div>
-      <button class="vit-button" id="login" style="margin-top:12px; width:100%;">Login</button>
     </div>
-  </main>
+  </div>
 
   <script>
-    let db;
-    db = firebase.firestore();
-    document.getElementById('login').onclick = async () => {
-      const email = vit.sanitizeInput(document.getElementById('email').value);
-      const password = document.getElementById('password').value;
-      if (!email || !password) return vitAlert('Enter credentials', 'warning');
-      try {
-        vitLoader(true);
-        const doc = await db.collection('vitAdmins').doc(email).get();
-        if (!doc.exists) return vitAlert('Invalid credentials', 'error');
-        const data = doc.data();
-        if (data.password !== password || data.role !== 'vit_admin') return vitAlert('Invalid credentials', 'error');
-        localStorage.vitGlobalAdmin = email;
-        window.location.href = '/VIT_PORTAL/vit-portal.html';
-      } catch (e) { vit.handleError(e); }
-      finally { vitLoader(false); }
+    let appInitialized = false;
+
+    const getFirebase = () => {
+      if (!appInitialized) {
+        firebase.initializeApp(firebaseConfig);
+        appInitialized = true;
+      }
+      return firebase.firestore();
     };
+
+    const redirectIfActive = () => {
+      const existing = localStorage.getItem('vitGlobalAdmin');
+      if (existing) {
+        window.location.href = '/VIT_PORTAL/vit-portal.html';
+      }
+    };
+
+    const handleLogin = async () => {
+      const emailEl = document.getElementById('email');
+      const passEl = document.getElementById('password');
+      const email = (emailEl.value || '').trim().toLowerCase();
+      const password = (passEl.value || '').trim();
+
+      if (!email || !password) {
+        window.vit?.vitAlert('Please enter your email and password.', 'warning');
+        return;
+      }
+
+      try {
+        window.vit?.vitLoader(true);
+        const db = getFirebase();
+        const doc = await db.collection('vitAdmins').doc(email).get();
+
+        if (!doc.exists) {
+          window.vit?.vitAlert('Invalid credentials', 'error');
+          return;
+        }
+
+        const data = doc.data();
+        if (data.password === password && data.role === 'vit_admin') {
+          localStorage.setItem('vitGlobalAdmin', email);
+          window.location.href = '/VIT_PORTAL/vit-portal.html';
+        } else {
+          window.vit?.vitAlert('Invalid credentials', 'error');
+        }
+      } catch (error) {
+        window.vit?.handleError?.(error, true);
+      } finally {
+        window.vit?.vitLoader(false);
+      }
+    };
+
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        handleLogin();
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', redirectIfActive);
   </script>
 </body>
 </html>

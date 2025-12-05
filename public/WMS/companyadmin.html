@@ -1,247 +1,513 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VIT Company Admin</title>
-  <link rel="stylesheet" href="/assets/vit.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIT — Company Admin Panel</title>
+  <link rel="stylesheet" href="/assets/vit.css" />
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/vit.js"></script>
 </head>
 <body>
-  <div class="vit-layout">
+  <div class="vit-shell">
     <aside class="vit-sidebar" id="sidebar">
-      <div class="brand"><img src="/assets/vit-logo.png" alt="VIT" style="width:42px;"> <strong>Admin</strong></div>
-      <button class="nav-button active" data-view="company">Company Info</button>
-      <button class="nav-button" data-view="warehouses">Warehouses</button>
-      <button class="nav-button" data-view="users">Users</button>
-      <button class="nav-button" id="logout">Logout</button>
+      <div class="sidebar-header">
+        <div class="brand">VIT Admin</div>
+        <div class="meta"><span id="sidebar-company"></span></div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="vit-button ghost" data-view="company" onclick="showView('company')">Company Info</button>
+        <button class="vit-button ghost" data-view="warehouses" onclick="showView('warehouses')">Warehouses</button>
+        <button class="vit-button ghost" data-view="users" onclick="showView('users')">Users</button>
+        <button class="vit-button danger ghost" onclick="logout()">Logout</button>
+      </nav>
     </aside>
-    <div>
+
+    <main class="vit-main">
       <header class="vit-topbar">
-        <div>
-          <div class="vit-breadcrumbs">WMS <span>Admin</span></div>
-          <h2 id="view-title">Company Info</h2>
-        </div>
-        <div class="meta">
-          <div class="vit-chip" id="chip-company"></div>
-          <div class="vit-chip" id="chip-user"></div>
+        <div class="title">Company Admin Panel</div>
+        <div class="context">
+          <span id="header-company"></span>
+          <span class="chip" id="header-warehouse"></span>
+          <span class="chip" id="header-user"></span>
         </div>
       </header>
-      <main style="padding:20px;">
-        <section id="view-company" class="view">
+
+      <section class="vit-content">
+        <div id="view-company" class="view">
           <div class="vit-card">
-            <h3>Company Profile</h3>
-            <div class="vit-form-row" style="margin-top:10px;">
-              <input class="vit-input" id="c-name" placeholder="Company Name">
-              <input class="vit-input" id="c-address" placeholder="Address">
-              <input class="vit-input" id="c-postcode" placeholder="Postcode">
-              <input class="vit-input" id="c-email" placeholder="Contact Email">
-              <input class="vit-input" id="c-password" placeholder="Company Password">
+            <div class="card-header">
+              <div>
+                <h2>Company Information</h2>
+                <p>Manage company profile and credentials.</p>
+              </div>
+              <button class="vit-button" onclick="saveCompanyInfo()">Save Changes</button>
             </div>
-            <div style="display:flex; justify-content:flex-end; margin-top:12px;">
-              <button class="vit-button" id="save-company">Save Changes</button>
+            <div class="grid two">
+              <label class="field">
+                <span>Company Name</span>
+                <input id="companyName" class="vit-input" placeholder="Company name" />
+              </label>
+              <label class="field">
+                <span>Contact Email</span>
+                <input id="contactEmail" class="vit-input" placeholder="contact@email" />
+              </label>
+              <label class="field">
+                <span>Address</span>
+                <input id="address" class="vit-input" placeholder="Street and city" />
+              </label>
+              <label class="field">
+                <span>Postcode</span>
+                <input id="postcode" class="vit-input" placeholder="Postcode" />
+              </label>
+              <label class="field">
+                <span>Company Password (for login wizard)</span>
+                <input id="companyPassword" class="vit-input" placeholder="Company password" />
+              </label>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section id="view-warehouses" class="view" style="display:none;">
-          <div class="vit-section-title">
-            <div><h3>Warehouses</h3><p style="color:var(--muted);">Manage locations</p></div>
-            <div style="display:flex; gap:8px;">
-              <input class="vit-input" id="new-warehouse" placeholder="Warehouse name">
-              <button class="vit-button" id="add-warehouse">Add</button>
+        <div id="view-warehouses" class="view hidden">
+          <div class="vit-card">
+            <div class="card-header">
+              <div>
+                <h2>Warehouses</h2>
+                <p>Manage warehouse locations for this company.</p>
+              </div>
+              <div class="actions">
+                <input id="newWarehouseName" class="vit-input" placeholder="New warehouse ID" />
+                <button class="vit-button" onclick="addWarehouse()">Add Warehouse</button>
+              </div>
             </div>
+            <div id="warehousesList" class="stack"></div>
           </div>
-          <div class="vit-card-list" id="warehouse-list"></div>
-        </section>
+        </div>
 
-        <section id="view-users" class="view" style="display:none;">
-          <div class="vit-section-title">
-            <div><h3>Users</h3><p style="color:var(--muted);">Per-warehouse users</p></div>
-            <div style="display:flex; gap:8px;">
-              <select class="vit-input" id="user-warehouse" style="max-width:220px;"></select>
-              <button class="vit-button" id="add-user">Add User</button>
+        <div id="view-users" class="view hidden">
+          <div class="vit-card">
+            <div class="card-header wrap">
+              <div>
+                <h2>Users</h2>
+                <p>Manage users per warehouse.</p>
+              </div>
+              <div class="actions">
+                <select id="warehouseSelector" class="vit-input" onchange="onWarehouseChange(event)"></select>
+                <button class="vit-button" onclick="openUserModal('add')">Add User</button>
+              </div>
             </div>
+            <div class="responsive-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Role</th>
+                    <th>Username</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+              </table>
+            </div>
+            <div id="usersCards" class="stack mobile-only"></div>
           </div>
-          <div id="users-table"></div>
-        </section>
-      </main>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="userModal" class="modal hidden">
+    <div class="modal-content vit-card">
+      <div class="modal-header">
+        <h3 id="userModalTitle">Add User</h3>
+        <button class="vit-button ghost" onclick="closeUserModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field">
+          <span>Warehouse</span>
+          <select id="userWarehouse" class="vit-input"></select>
+        </label>
+        <label class="field">
+          <span>Username</span>
+          <input id="userUsername" class="vit-input" placeholder="Username" />
+        </label>
+        <label class="field">
+          <span>Role</span>
+          <select id="userRole" class="vit-input">
+            <option value="picker">Picker</option>
+            <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
+            <option value="driver">Driver</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="userPassword" class="vit-input" type="password" placeholder="Password" />
+        </label>
+        <label class="field">
+          <span>Status</span>
+          <select id="userStatus" class="vit-input">
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="vit-button ghost" onclick="closeUserModal()">Cancel</button>
+        <button class="vit-button" id="userModalSave" onclick="submitUserForm()">Save</button>
+      </div>
     </div>
   </div>
 
-  <div id="modal"></div>
-
   <script>
     let db;
-    db = firebase.firestore();
-    const { qs, qsa, ce } = vit;
-    const session = vit.loadSession();
-    if (!session.role) window.location.href = '/index.html';
-    if (session.role !== 'admin') window.location.href = '/WMS/app.html';
+    let session;
+    let currentWarehouse = '';
+    let userModalMode = 'add';
+    let editingUser = '';
 
-    qs('#chip-company').textContent = session.company;
-    qs('#chip-user').textContent = `${session.user} (admin)`;
-    qs('#logout').onclick = () => { vit.clearSession(); window.location.href = '/index.html'; };
+    const vitConfirm = (message) => Promise.resolve(window.confirm(message));
 
-    const companyRef = db.collection('companies').doc(session.company);
-
-    const showView = (id, label) => {
-      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-      qs(`#view-${id}`).style.display = 'block';
-      qs('#view-title').textContent = label;
-      qsa('.nav-button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
-    };
-
-    qsa('.nav-button[data-view]').forEach(btn => btn.onclick = () => showView(btn.dataset.view, btn.textContent));
-
-    const loadCompanyInfo = async () => {
-      const doc = await companyRef.get();
-      const data = doc.data() || {};
-      qs('#c-name').value = data.name || '';
-      qs('#c-address').value = data.address || '';
-      qs('#c-postcode').value = data.postcode || '';
-      qs('#c-email').value = data.email || '';
-      qs('#c-password').value = data.companyPassword || '';
-    };
-
-    const saveCompanyInfo = async () => {
-      try {
-        vitLoader(true);
-        await companyRef.set({
-          name: qs('#c-name').value,
-          address: qs('#c-address').value,
-          postcode: qs('#c-postcode').value,
-          email: qs('#c-email').value,
-          companyPassword: qs('#c-password').value,
-        }, { merge: true });
-        vitToast('Saved');
-      } catch (e) { vit.handleError(e); }
-      finally { vitLoader(false); }
-    };
-
-    qs('#save-company').onclick = saveCompanyInfo;
-
-    const loadWarehouses = async () => {
-      const snap = await companyRef.collection('warehouses').get();
-      const list = qs('#warehouse-list');
-      const select = qs('#user-warehouse');
-      list.innerHTML = '';
-      select.innerHTML = '';
-      snap.forEach(doc => {
-        const card = ce('div');
-        card.className = 'vit-card';
-        card.innerHTML = `<h3>${doc.id}</h3><p style="color:var(--muted);">Tap to manage</p><div style="display:flex; gap:8px; margin-top:8px;"><button class="vit-button secondary" data-id="${doc.id}" data-action="delete">Delete</button></div>`;
-        list.appendChild(card);
-        const opt = ce('option');
-        opt.value = doc.id; opt.textContent = doc.id; select.appendChild(opt);
-      });
-      qsa('#warehouse-list button').forEach(btn => btn.onclick = () => deleteWarehouse(btn.dataset.id));
-      if (select.options.length) loadUsers(select.value);
-      select.onchange = () => loadUsers(select.value);
-    };
-
-    qs('#add-warehouse').onclick = async () => {
-      const name = vit.sanitizeInput(qs('#new-warehouse').value);
-      if (!name) return vitAlert('Enter warehouse name', 'warning');
-      await companyRef.collection('warehouses').doc(name).set({ createdAt: new Date().toISOString() });
-      vitToast('Warehouse added');
-      loadWarehouses();
-    };
-
-    const deleteWarehouse = (name) => {
-      vitConfirm(`Delete warehouse ${name}?`, async () => {
-        const wRef = companyRef.collection('warehouses').doc(name);
-        const collections = ['users', 'inventory', 'picks'];
-        for (const col of collections) {
-          const snap = await wRef.collection(col).get();
-          for (const doc of snap.docs) await doc.ref.delete();
-        }
-        await wRef.delete();
-        vitToast('Warehouse deleted');
-        loadWarehouses();
-      });
-    };
-
-    const loadUsers = async (warehouseId) => {
-      const wrap = qs('#users-table');
-      wrap.innerHTML = '';
-      const snap = await companyRef.collection('warehouses').doc(warehouseId).collection('users').get();
-      if (snap.empty) return wrap.innerHTML = '<div class="vit-placeholder">No users</div>';
-      const table = ce('table');
-      table.className = 'vit-table';
-      table.innerHTML = '<thead><tr><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead>';
-      const tbody = ce('tbody');
-      snap.forEach(doc => {
-        const d = doc.data();
-        const tr = ce('tr');
-        tr.innerHTML = `<td>${doc.id}</td><td>${d.role || ''}</td><td>${d.status || 'active'}</td><td><button class="vit-button secondary" data-user="${doc.id}" data-action="edit">Edit</button></td>`;
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-      wrap.appendChild(table);
-      tbody.querySelectorAll('button').forEach(btn => btn.onclick = () => openUserModal(warehouseId, btn.dataset.user));
-    };
-
-    const openUserModal = async (warehouseId, username = '') => {
-      const modal = qs('#modal');
-      let data = { role: 'picker', status: 'active' };
-      if (username) {
-        const doc = await companyRef.collection('warehouses').doc(warehouseId).collection('users').doc(username).get();
-        data = { ...data, ...(doc.data() || {}) };
+    document.addEventListener('DOMContentLoaded', () => {
+      session = window.vit?.loadSession?.() || {};
+      if (!session?.company || !session?.user || !session?.role) {
+        window.location.href = '/index.html';
+        return;
       }
-      modal.innerHTML = `
-        <div class="vit-modal-backdrop">
-          <div class="vit-modal">
-            <h3>${username ? 'Edit' : 'Add'} User</h3>
-            <div class="vit-form-row" style="margin-top:10px;">
-              <input class="vit-input" id="u-username" placeholder="Username" value="${username || ''}" ${username ? 'disabled' : ''}>
-              <select class="vit-input" id="u-role">
-                <option value="picker" ${data.role === 'picker' ? 'selected' : ''}>Picker</option>
-                <option value="manager" ${data.role === 'manager' ? 'selected' : ''}>Manager</option>
-                <option value="admin" ${data.role === 'admin' ? 'selected' : ''}>Admin</option>
-                <option value="driver" ${data.role === 'driver' ? 'selected' : ''}>Driver</option>
-              </select>
-              <select class="vit-input" id="u-status">
-                <option value="active" ${data.status === 'active' ? 'selected' : ''}>Active</option>
-                <option value="disabled" ${data.status === 'disabled' ? 'selected' : ''}>Disabled</option>
-              </select>
-              <input class="vit-input" id="u-password" placeholder="Password" value="${data.password || ''}">
-            </div>
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
-              <button class="vit-button secondary" id="u-cancel">Cancel</button>
-              <button class="vit-button" id="u-save">Save</button>
-            </div>
-          </div>
-        </div>`;
-      qs('#u-cancel').onclick = () => modal.innerHTML = '';
-      qs('#u-save').onclick = async () => {
-        const usernameVal = username || vit.sanitizeInput(qs('#u-username').value);
-        if (!usernameVal) return vitAlert('Username required', 'warning');
+      if (session.role !== 'admin') {
+        window.location.href = '/WMS/app.html';
+        return;
+      }
+
+      document.getElementById('header-company').textContent = session.company;
+      document.getElementById('header-warehouse').textContent = session.warehouse || 'No warehouse selected';
+      document.getElementById('header-user').textContent = session.user;
+      document.getElementById('sidebar-company').textContent = session.company;
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.firestore();
+
+      showView('company');
+      loadCompanyInfo();
+      loadWarehouses();
+    });
+
+    function showView(name) {
+      document.querySelectorAll('.view').forEach((v) => v.classList.add('hidden'));
+      const view = document.getElementById(`view-${name}`);
+      if (view) view.classList.remove('hidden');
+      document.querySelectorAll('.sidebar-nav button').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.view === name);
+      });
+    }
+
+    function logout() {
+      window.vit?.clearSession?.();
+      window.location.href = '/index.html';
+    }
+
+    async function loadCompanyInfo() {
+      try {
+        window.vit?.vitLoader?.(true);
+        const doc = await db.collection('companies').doc(session.company).get();
+        const data = doc.data() || {};
+        document.getElementById('companyName').value = data.companyName || '';
+        document.getElementById('contactEmail').value = data.contactEmail || '';
+        document.getElementById('address').value = data.address || '';
+        document.getElementById('postcode').value = data.postcode || '';
+        document.getElementById('companyPassword').value = data.companyPassword || '';
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    async function saveCompanyInfo() {
+      try {
+        window.vit?.vitLoader?.(true);
         const payload = {
-          role: qs('#u-role').value,
-          status: qs('#u-status').value,
-          password: qs('#u-password').value,
+          companyName: document.getElementById('companyName').value.trim(),
+          contactEmail: document.getElementById('contactEmail').value.trim(),
+          address: document.getElementById('address').value.trim(),
+          postcode: document.getElementById('postcode').value.trim(),
+          companyPassword: document.getElementById('companyPassword').value.trim(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         };
-        await companyRef.collection('warehouses').doc(warehouseId).collection('users').doc(usernameVal).set(payload, { merge: true });
-        vitToast('User saved');
-        modal.innerHTML = '';
+        await db.collection('companies').doc(session.company).set(payload, { merge: true });
+        window.vit?.vitAlert?.('Company information saved', 'success');
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    async function loadWarehouses() {
+      try {
+        window.vit?.vitLoader?.(true);
+        const snap = await db.collection('companies').doc(session.company).collection('warehouses').get();
+        const listEl = document.getElementById('warehousesList');
+        const selector = document.getElementById('warehouseSelector');
+        const userWarehouse = document.getElementById('userWarehouse');
+        listEl.innerHTML = '';
+        selector.innerHTML = '';
+        userWarehouse.innerHTML = '';
+        snap.forEach((doc) => {
+          const id = doc.id;
+          const card = document.createElement('div');
+          card.className = 'vit-card row';
+          card.innerHTML = `
+            <div>
+              <h3>${id}</h3>
+              <p>${doc.data().name || 'Warehouse'}</p>
+            </div>
+            <div class="actions">
+              <button class="vit-button ghost" onclick="loadUsers('${id}')">Users</button>
+              <button class="vit-button danger ghost" onclick="deleteWarehouse('${id}')">Delete</button>
+            </div>
+          `;
+          listEl.appendChild(card);
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = id;
+          selector.appendChild(option.cloneNode(true));
+          userWarehouse.appendChild(option);
+        });
+        if (!currentWarehouse && selector.options.length) {
+          currentWarehouse = selector.options[0].value;
+          selector.value = currentWarehouse;
+          userWarehouse.value = currentWarehouse;
+          loadUsers(currentWarehouse);
+        }
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    async function addWarehouse() {
+      const name = document.getElementById('newWarehouseName').value.trim();
+      if (!name) {
+        window.vit?.vitAlert?.('Enter a warehouse ID', 'warning');
+        return;
+      }
+      try {
+        window.vit?.vitLoader?.(true);
+        await db.collection('companies').doc(session.company).collection('warehouses').doc(name).set({
+          name,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        document.getElementById('newWarehouseName').value = '';
+        window.vit?.vitAlert?.('Warehouse added', 'success');
+        loadWarehouses();
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    async function deleteWarehouse(name) {
+      const confirmed = await vitConfirm(`Delete warehouse ${name}? This cannot be undone.`);
+      if (!confirmed) return;
+      try {
+        window.vit?.vitLoader?.(true);
+        const ref = db.collection('companies').doc(session.company).collection('warehouses').doc(name);
+        const subcollections = ['users', 'inventory', 'picks'];
+        for (const sub of subcollections) {
+          const subSnap = await ref.collection(sub).get();
+          const batch = db.batch();
+          subSnap.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+        }
+        await ref.delete();
+        if (currentWarehouse === name) {
+          currentWarehouse = '';
+        }
+        window.vit?.vitAlert?.('Warehouse deleted', 'success');
+        loadWarehouses();
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    function onWarehouseChange(event) {
+      currentWarehouse = event.target.value;
+      document.getElementById('userWarehouse').value = currentWarehouse;
+      loadUsers(currentWarehouse);
+    }
+
+    async function loadUsers(warehouseId) {
+      if (!warehouseId) return;
+      currentWarehouse = warehouseId;
+      document.getElementById('warehouseSelector').value = warehouseId;
+      document.getElementById('userWarehouse').value = warehouseId;
+      try {
+        window.vit?.vitLoader?.(true);
+        const snap = await db.collection('companies').doc(session.company).collection('warehouses').doc(warehouseId).collection('users').get();
+        const tbody = document.getElementById('usersTableBody');
+        const cards = document.getElementById('usersCards');
+        tbody.innerHTML = '';
+        cards.innerHTML = '';
+        snap.forEach((doc) => {
+          const data = doc.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="role">${data.role || ''}</td>
+            <td>${doc.id}</td>
+            <td>${data.status || 'active'}</td>
+            <td>
+              <div class="table-actions">
+                <button class="vit-button ghost" onclick="editUser('${warehouseId}','${doc.id}')">Edit</button>
+                <button class="vit-button ghost" onclick="resetPassword('${warehouseId}','${doc.id}')">Reset PW</button>
+                <button class="vit-button danger ghost" onclick="deleteUser('${warehouseId}','${doc.id}')">Delete</button>
+              </div>
+            </td>`;
+          tbody.appendChild(tr);
+
+          const card = document.createElement('div');
+          card.className = 'vit-card mobile-card';
+          card.innerHTML = `
+            <div class="card-row"><strong>Username:</strong> ${doc.id}</div>
+            <div class="card-row"><strong>Role:</strong> ${data.role || ''}</div>
+            <div class="card-row"><strong>Status:</strong> ${data.status || 'active'}</div>
+            <div class="card-row actions">
+              <button class="vit-button ghost" onclick="editUser('${warehouseId}','${doc.id}')">Edit</button>
+              <button class="vit-button ghost" onclick="resetPassword('${warehouseId}','${doc.id}')">Reset PW</button>
+              <button class="vit-button danger ghost" onclick="deleteUser('${warehouseId}','${doc.id}')">Delete</button>
+            </div>`;
+          cards.appendChild(card);
+        });
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    function openUserModal(mode, username = '') {
+      userModalMode = mode;
+      editingUser = username;
+      document.getElementById('userModalTitle').textContent = mode === 'add' ? 'Add User' : `Edit ${username}`;
+      document.getElementById('userUsername').disabled = mode !== 'add';
+      if (mode === 'add') {
+        document.getElementById('userUsername').value = '';
+        document.getElementById('userPassword').value = '';
+        document.getElementById('userRole').value = 'picker';
+        document.getElementById('userStatus').value = 'active';
+      } else {
+        document.getElementById('userUsername').value = username;
+      }
+      document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    function closeUserModal() {
+      document.getElementById('userModal').classList.add('hidden');
+    }
+
+    async function submitUserForm() {
+      const warehouseId = document.getElementById('userWarehouse').value;
+      const username = document.getElementById('userUsername').value.trim();
+      const role = document.getElementById('userRole').value;
+      const password = document.getElementById('userPassword').value;
+      const status = document.getElementById('userStatus').value;
+      if (!warehouseId || !username || !role) {
+        window.vit?.vitAlert?.('Fill all required fields', 'warning');
+        return;
+      }
+      if (userModalMode === 'add') {
+        await addUser(warehouseId, { username, role, password, status });
+      } else {
+        await updateUser(warehouseId, { username, role, password, status });
+      }
+    }
+
+    async function addUser(warehouseId, { username, role, password, status }) {
+      try {
+        window.vit?.vitLoader?.(true);
+        const ref = db.collection('companies').doc(session.company).collection('warehouses').doc(warehouseId).collection('users').doc(username);
+        await ref.set({ role, password: password || '', status: status || 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        window.vit?.vitAlert?.('User added', 'success');
+        closeUserModal();
         loadUsers(warehouseId);
-      };
-    };
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
 
-    qs('#add-user').onclick = () => {
-      const warehouse = qs('#user-warehouse').value;
-      if (!warehouse) return vitAlert('Select warehouse first', 'warning');
-      openUserModal(warehouse);
-    };
+    async function editUser(warehouseId, username) {
+      try {
+        window.vit?.vitLoader?.(true);
+        const docSnap = await db.collection('companies').doc(session.company).collection('warehouses').doc(warehouseId).collection('users').doc(username).get();
+        const data = docSnap.data();
+        openUserModal('edit', username);
+        document.getElementById('userWarehouse').value = warehouseId;
+        document.getElementById('userRole').value = data?.role || 'picker';
+        document.getElementById('userStatus').value = data?.status || 'active';
+        document.getElementById('userPassword').value = '';
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
 
-    loadCompanyInfo();
-    loadWarehouses();
+    async function updateUser(warehouseId, { username, role, password, status }) {
+      try {
+        window.vit?.vitLoader?.(true);
+        const ref = db.collection('companies').doc(session.company).collection('warehouses').doc(warehouseId).collection('users').doc(username);
+        const payload = { role, status };
+        if (password) payload.password = password;
+        await ref.set(payload, { merge: true });
+        window.vit?.vitAlert?.('User updated', 'success');
+        closeUserModal();
+        loadUsers(warehouseId);
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    async function resetPassword(warehouseId, username) {
+      const confirmed = await vitConfirm(`Reset password for ${username}?`);
+      if (!confirmed) return;
+      try {
+        window.vit?.vitLoader?.(true);
+        const newPassword = `pass-${Math.random().toString(36).slice(2, 8)}`;
+        await db.collection('companies').doc(session.company).collection('warehouses').doc(warehouseId).collection('users').doc(username).set({ password: newPassword }, { merge: true });
+        window.vit?.vitAlert?.(`Password reset. New password: ${newPassword}`, 'success');
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
+
+    async function deleteUser(warehouseId, username) {
+      const confirmed = await vitConfirm(`Delete user ${username}?`);
+      if (!confirmed) return;
+      try {
+        window.vit?.vitLoader?.(true);
+        await db.collection('companies').doc(session.company).collection('warehouses').doc(warehouseId).collection('users').doc(username).delete();
+        window.vit?.vitAlert?.('User deleted', 'success');
+        loadUsers(warehouseId);
+      } catch (error) {
+        window.vit?.handleError?.(error);
+      } finally {
+        window.vit?.vitLoader?.(false);
+      }
+    }
   </script>
 </body>
 </html>
