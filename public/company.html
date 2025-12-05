@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT Company Access</title>
+  <link rel="stylesheet" href="/assets/vit.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+</head>
+<body>
+  <main class="vit-container" style="display:flex; justify-content:center; align-items:center; min-height:95vh;">
+    <div class="vit-card" style="width:100%; max-width:720px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="/assets/vit-logo.png" alt="VIT" style="width:52px;">
+          <div>
+            <p style="margin:0; color:var(--muted); font-size:14px;">Multi-Step Secure Access</p>
+            <h2 style="margin:2px 0 0;">Company Login Wizard</h2>
+          </div>
+        </div>
+        <a href="/index.html" class="vit-chip">← Back</a>
+      </div>
+      <div class="vit-stepper">
+        <div class="vit-step active" id="step-label-1">Company ID</div>
+        <div class="vit-step" id="step-label-2">Company Password</div>
+        <div class="vit-step" id="step-label-3">Warehouse</div>
+        <div class="vit-step" id="step-label-4">User Login</div>
+      </div>
+      <div id="wizard-body"></div>
+    </div>
+  </main>
+
+  <template id="tpl-step-1">
+    <div class="vit-form-row">
+      <div>
+        <label>Company ID</label>
+        <input class="vit-input" id="companyId" placeholder="e.g., vit-warehouse" autocomplete="off" />
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+      <button class="vit-button" id="btn-step1">Continue</button>
+    </div>
+  </template>
+
+  <template id="tpl-step-2">
+    <div class="vit-form-row">
+      <div>
+        <label>Company Password</label>
+        <input class="vit-input" id="companyPassword" type="password" placeholder="••••••" />
+      </div>
+    </div>
+    <div style="display:flex; justify-content:space-between; gap:10px; margin-top:14px;">
+      <button class="vit-button secondary" id="back-2">Back</button>
+      <button class="vit-button" id="btn-step2">Validate</button>
+    </div>
+  </template>
+
+  <template id="tpl-step-3">
+    <div>
+      <p style="color:var(--muted);">Select the warehouse you need to access.</p>
+      <div id="warehouse-list" class="vit-grid"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; gap:10px; margin-top:14px;">
+      <button class="vit-button secondary" id="back-3">Back</button>
+      <button class="vit-button" id="btn-step3" disabled>Continue</button>
+    </div>
+  </template>
+
+  <template id="tpl-step-4">
+    <div class="vit-form-row">
+      <div>
+        <label>Username</label>
+        <input class="vit-input" id="username" placeholder="picker01" autocomplete="username" />
+      </div>
+      <div>
+        <label>Password</label>
+        <input class="vit-input" id="password" type="password" placeholder="Password" autocomplete="current-password" />
+      </div>
+    </div>
+    <div style="display:flex; justify-content:space-between; gap:10px; margin-top:14px;">
+      <button class="vit-button secondary" id="back-4">Back</button>
+      <button class="vit-button" id="btn-step4">Login</button>
+    </div>
+  </template>
+
+  <script>
+    let db;
+    db = firebase.firestore();
+    const { qs } = vit;
+    let state = { companyId: '', warehouseId: '', role: '', companyPassword: '' };
+
+    const setStep = (step) => {
+      [1,2,3,4].forEach((s) => {
+        document.getElementById(`step-label-${s}`).classList.toggle('active', s === step);
+      });
+      const tpl = document.getElementById(`tpl-step-${step}`);
+      const body = document.getElementById('wizard-body');
+      body.innerHTML = '';
+      body.appendChild(tpl.content.cloneNode(true));
+      bindStep(step);
+    };
+
+    const bindStep = (step) => {
+      if (step === 1) {
+        qs('#btn-step1').onclick = async () => {
+          const companyId = vit.sanitizeInput(qs('#companyId').value);
+          if (!companyId) return vitAlert('Enter a company ID', 'warning');
+          try {
+            vitLoader(true);
+            const doc = await db.collection('companies').doc(companyId).get();
+            if (!doc.exists) return vitAlert('Company not found', 'error');
+            state.companyId = companyId;
+            state.companyPassword = doc.data().companyPassword;
+            setStep(2);
+          } catch (e) { vit.handleError(e); }
+          finally { vitLoader(false); }
+        };
+      }
+      if (step === 2) {
+        qs('#back-2').onclick = () => setStep(1);
+        qs('#btn-step2').onclick = () => {
+          const pass = qs('#companyPassword').value;
+          if (!pass) return vitAlert('Enter company password', 'warning');
+          if (pass !== state.companyPassword) return vitAlert('Incorrect password', 'error');
+          loadWarehouses();
+        };
+      }
+      if (step === 3) {
+        qs('#back-3').onclick = () => setStep(2);
+        qs('#btn-step3').onclick = () => setStep(4);
+      }
+      if (step === 4) {
+        qs('#back-4').onclick = () => setStep(3);
+        qs('#btn-step4').onclick = loginUser;
+      }
+    };
+
+    const loadWarehouses = async () => {
+      try {
+        vitLoader(true);
+        const list = qs('#warehouse-list');
+        list.innerHTML = '';
+        const snap = await db.collection('companies').doc(state.companyId).collection('warehouses').get();
+        if (snap.empty) {
+          vitAlert('No warehouses configured', 'warning');
+          return;
+        }
+        snap.forEach((doc) => {
+          const card = document.createElement('div');
+          card.className = 'vit-card';
+          card.style.cursor = 'pointer';
+          card.innerHTML = `<h3>${doc.id}</h3><p style="color:var(--muted);">Tap to select this warehouse.</p>`;
+          card.onclick = () => {
+            state.warehouseId = doc.id;
+            document.querySelectorAll('#warehouse-list .vit-card').forEach(c => c.style.borderColor = 'var(--border)');
+            card.style.borderColor = 'var(--accent)';
+            qs('#btn-step3').disabled = false;
+          };
+          list.appendChild(card);
+        });
+        setStep(3);
+      } catch (e) { vit.handleError(e); }
+      finally { vitLoader(false); }
+    };
+
+    const loginUser = async () => {
+      const username = vit.sanitizeInput(qs('#username').value);
+      const password = qs('#password').value;
+      if (!username || !password) return vitAlert('Enter username and password', 'warning');
+      try {
+        vitLoader(true);
+        const doc = await db.collection('companies').doc(state.companyId)
+          .collection('warehouses').doc(state.warehouseId)
+          .collection('users').doc(username).get();
+        if (!doc.exists) return vitAlert('User not found', 'error');
+        const data = doc.data();
+        if (data.password !== password) return vitAlert('Incorrect password', 'error');
+        vit.saveSession({ company: state.companyId, warehouse: state.warehouseId, user: username, role: data.role });
+        vitAlert('Login successful', 'success');
+        setTimeout(() => vit.roleRedirect(), 600);
+      } catch (e) { vit.handleError(e); }
+      finally { vitLoader(false); }
+    };
+
+    setStep(1);
+  </script>
+</body>
+</html>

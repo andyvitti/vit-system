@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT Super Admin Login</title>
+  <link rel="stylesheet" href="/assets/vit.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+</head>
+<body>
+  <main class="vit-container" style="display:flex; justify-content:center; align-items:center; min-height:95vh;">
+    <div class="vit-card" style="max-width:460px; width:100%; text-align:center;">
+      <img src="/assets/vit-logo.png" alt="VIT" style="width:76px; margin-bottom:12px;">
+      <h2>Super Admin Portal</h2>
+      <p style="color:var(--muted);">Private access for VIT global admins.</p>
+      <div class="vit-form-row" style="margin-top:14px;">
+        <input class="vit-input" id="email" placeholder="Email">
+        <input class="vit-input" id="password" type="password" placeholder="Password">
+      </div>
+      <button class="vit-button" id="login" style="margin-top:12px; width:100%;">Login</button>
+    </div>
+  </main>
+
+  <script>
+    let db;
+    db = firebase.firestore();
+    document.getElementById('login').onclick = async () => {
+      const email = vit.sanitizeInput(document.getElementById('email').value);
+      const password = document.getElementById('password').value;
+      if (!email || !password) return vitAlert('Enter credentials', 'warning');
+      try {
+        vitLoader(true);
+        const doc = await db.collection('vitAdmins').doc(email).get();
+        if (!doc.exists) return vitAlert('Invalid credentials', 'error');
+        const data = doc.data();
+        if (data.password !== password || data.role !== 'vit_admin') return vitAlert('Invalid credentials', 'error');
+        localStorage.vitGlobalAdmin = email;
+        window.location.href = '/VIT_PORTAL/vit-portal.html';
+      } catch (e) { vit.handleError(e); }
+      finally { vitLoader(false); }
+    };
+  </script>
+</body>
+</html>
