@@ -1,0 +1,16 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": ["**/.*", "**/node_modules/**"],
+    "rewrites": [
+      { "source": "/company", "destination": "/company.html" },
+      { "source": "/demo", "destination": "/demo.html" },
+      { "source": "/WMS/admin", "destination": "/WMS/app.html" },
+      { "source": "/WMS/office", "destination": "/WMS/app.html" },
+      { "source": "/WMS/picker", "destination": "/WMS/pickerapp.html" },
+      { "source": "/TMS/driver", "destination": "/TMS/driversapp.html" },
+      { "source": "/VIT_PORTAL/**", "destination": "/VIT_PORTAL/vit-portal.html" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}
