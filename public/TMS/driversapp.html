@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT Driver App</title>
+  <link rel="stylesheet" href="/assets/vit.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+</head>
+<body>
+  <header class="vit-topbar">
+    <a href="/WMS/app.html" class="vit-chip">← Back to WMS Dashboard</a>
+    <h2>Driver App</h2>
+    <div class="meta">
+      <div class="vit-chip" id="meta-warehouse">Warehouse</div>
+      <div class="vit-chip" id="meta-user">User</div>
+      <button class="vit-button secondary" id="btn-logout">Logout</button>
+    </div>
+  </header>
+
+  <main style="padding:20px;">
+    <section id="view-jobs">
+      <div class="vit-section-title">
+        <h3>Your Jobs</h3>
+      </div>
+      <div class="vit-card-list" id="jobs-list"></div>
+    </section>
+
+    <section id="view-job-details" style="display:none;">
+      <div class="vit-section-title">
+        <div><h3 id="job-title">Job</h3><p style="color:var(--muted);">Swipe to move through stages</p></div>
+        <button class="vit-button secondary" id="back-to-jobs">Back</button>
+      </div>
+      <div class="vit-card" id="checklist-card">
+        <h4>Vehicle Checklist</h4>
+        <div class="vit-form-row">
+          <label><input type="checkbox" id="c1"> Tyres checked</label>
+          <label><input type="checkbox" id="c2"> Lights working</label>
+          <label><input type="checkbox" id="c3"> Mirrors OK</label>
+          <label><input type="checkbox" id="c4"> Load secured</label>
+          <label><input type="checkbox" id="c5"> Bodywork damage check</label>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+          <button class="vit-button" id="submit-checklist">Submit Checklist</button>
+        </div>
+      </div>
+      <div id="stage-card"></div>
+    </section>
+  </main>
+
+  <script>
+    const db = firebase.firestore();
+    const { qs } = vit;
+    const session = vit.loadSession();
+    if (!session.role) window.location.href = '/index.html';
+    if (session.role !== 'driver') {
+      if (session.role === 'picker') window.location.href = '/WMS/pickerapp.html';
+      else window.location.href = '/WMS/app.html';
+    }
+
+    document.getElementById('meta-warehouse').textContent = session.warehouse;
+    document.getElementById('meta-user').textContent = session.user;
+    document.getElementById('btn-logout').onclick = () => { vit.clearSession(); window.location.href = '/index.html'; };
+
+    const jobsRef = db.collection('companies').doc(session.company).collection('warehouses').doc(session.warehouse).collection('driverJobs');
+    let activeJobId = null;
+    let stageIndex = 0;
+    const stages = ['assigned', 'started', 'enroute', 'delivered'];
+
+    const showView = (id) => {
+      document.getElementById('view-jobs').style.display = id === 'jobs' ? 'block' : 'none';
+      document.getElementById('view-job-details').style.display = id === 'details' ? 'block' : 'none';
+    };
+
+    const loadJobs = () => {
+      jobsRef.where('assignedTo', '==', session.user).where('status', '!=', 'delivered').onSnapshot((snap) => {
+        const list = document.getElementById('jobs-list');
+        list.innerHTML = '';
+        if (snap.empty) list.innerHTML = '<div class="vit-placeholder">No open jobs</div>';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const card = document.createElement('div');
+          card.className = 'vit-card';
+          card.innerHTML = `<h3>${doc.id}</h3><p>${d.customer || ''}</p><p style="color:var(--muted);">${d.address || ''}</p><p>Pallets: ${d.pallets || 0}</p><p>Status: ${d.status || 'assigned'}</p><button class="vit-button" data-id="${doc.id}">Open Job</button>`;
+          list.appendChild(card);
+        });
+        list.querySelectorAll('button').forEach(btn => btn.onclick = () => openJob(btn.dataset.id));
+      });
+    };
+
+    const openJob = async (jobId) => {
+      vitLoader(true);
+      const doc = await jobsRef.doc(jobId).get();
+      vitLoader(false);
+      if (!doc.exists) return vitAlert('Job not found', 'error');
+      activeJobId = jobId;
+      stageIndex = stages.indexOf(doc.data().status) >= 0 ? stages.indexOf(doc.data().status) : 0;
+      document.getElementById('job-title').textContent = `Job ${jobId}`;
+      renderStageCard(doc.data());
+      showView('details');
+    };
+
+    const renderStageCard = (data) => {
+      const stageCard = document.getElementById('stage-card');
+      stageCard.innerHTML = `
+        <div class="vit-card" id="swipe-card">
+          <div class="vit-badge success">Stage ${stageIndex + 1} / ${stages.length}</div>
+          <h3>${data.customer || ''}</h3>
+          <p style="color:var(--muted);">${data.address || ''}</p>
+          <div class="vit-placeholder" style="height:160px; margin:10px 0;">Map placeholder</div>
+          <p>Pallets: ${data.pallets || 0}</p>
+          <p>Contact: ${data.contact || 'N/A'}</p>
+          <p>Current stage: <strong>${stages[stageIndex]}</strong></p>
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="vit-button secondary" id="stage-back">Back</button>
+            <button class="vit-button" id="stage-next">Next</button>
+          </div>
+        </div>`;
+      attachSwipe(stageCard.querySelector('#swipe-card'));
+      document.getElementById('stage-back').onclick = () => goBackStage();
+      document.getElementById('stage-next').onclick = () => advanceStage();
+      document.getElementById('checklist-card').style.display = data.checklistSubmitted ? 'none' : 'block';
+    };
+
+    const attachSwipe = (card) => {
+      let startX = 0;
+      card.addEventListener('touchstart', (e) => startX = e.touches[0].clientX);
+      card.addEventListener('touchend', (e) => {
+        const diff = e.changedTouches[0].clientX - startX;
+        if (diff > 40) advanceStage();
+        if (diff < -40) goBackStage();
+      });
+    };
+
+    const submitChecklist = async () => {
+      const allChecked = ['c1','c2','c3','c4','c5'].every(id => qs(`#${id}`).checked);
+      if (!allChecked) return vitAlert('Complete all checks', 'warning');
+      await jobsRef.doc(activeJobId).set({ checklistSubmitted: true }, { merge: true });
+      vitToast('Checklist saved');
+      document.getElementById('checklist-card').style.display = 'none';
+    };
+
+    const updateJobStatus = async () => {
+      await jobsRef.doc(activeJobId).set({ status: stages[stageIndex] }, { merge: true });
+      if (stages[stageIndex] === 'delivered') {
+        await jobsRef.doc(activeJobId).set({ deliveredAt: new Date().toISOString() }, { merge: true });
+        vitAlert('Delivery complete', 'success');
+        showView('jobs');
+      }
+    };
+
+    const advanceStage = async () => {
+      if (stageIndex < stages.length - 1) stageIndex += 1;
+      await updateJobStatus();
+      const doc = await jobsRef.doc(activeJobId).get();
+      renderStageCard(doc.data());
+    };
+
+    const goBackStage = async () => {
+      if (stageIndex > 0) stageIndex -= 1;
+      await updateJobStatus();
+      const doc = await jobsRef.doc(activeJobId).get();
+      renderStageCard(doc.data());
+    };
+
+    document.getElementById('submit-checklist').onclick = submitChecklist;
+    document.getElementById('back-to-jobs').onclick = () => showView('jobs');
+    loadJobs();
+  </script>
+</body>
+</html>

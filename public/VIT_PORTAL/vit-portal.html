@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT Super Admin Portal</title>
+  <link rel="stylesheet" href="/assets/vit.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+</head>
+<body>
+  <div class="vit-layout">
+    <aside class="vit-sidebar" id="sidebar">
+      <div class="brand"><img src="/assets/vit-logo.png" alt="VIT" style="width:42px;"> <strong>VIT Portal</strong></div>
+      <button class="nav-button active" data-view="dashboard">Home</button>
+      <button class="nav-button" data-view="companies">Companies</button>
+      <button class="nav-button" data-view="warehouses">Warehouses</button>
+      <button class="nav-button" data-view="users">Users</button>
+      <button class="nav-button" data-view="plans">Plans</button>
+      <button class="nav-button" data-view="features">Feature Toggles</button>
+      <button class="nav-button" data-view="metrics">System Metrics</button>
+      <button class="nav-button" data-view="logs">Audit Logs</button>
+      <button class="nav-button" data-view="settings">Global Settings</button>
+      <button class="nav-button" id="logout">Logout</button>
+    </aside>
+    <div>
+      <header class="vit-topbar">
+        <div>
+          <div class="vit-breadcrumbs">VIT Portal <span>Dashboard</span></div>
+          <h2 id="view-title">Dashboard</h2>
+        </div>
+        <div class="meta">
+          <div class="vit-chip" id="admin-email"></div>
+        </div>
+      </header>
+      <main style="padding:20px;">
+        <section id="view-dashboard" class="view">
+          <div class="vit-grid">
+            <div class="vit-card"><p>Total Companies</p><h2 id="kpi-companies">-</h2></div>
+            <div class="vit-card"><p>Total Warehouses</p><h2 id="kpi-warehouses">-</h2></div>
+            <div class="vit-card"><p>Total Users</p><h2 id="kpi-users">-</h2></div>
+            <div class="vit-card"><p>Active Plans</p><h2 id="kpi-plans">-</h2></div>
+            <div class="vit-card"><p>Picks Today</p><h2 id="kpi-picks">-</h2></div>
+            <div class="vit-card"><p>Deliveries Today</p><h2 id="kpi-deliveries">-</h2></div>
+          </div>
+          <div class="vit-grid" style="margin-top:16px;">
+            <div class="vit-card"><h3>Monthly Companies Created</h3><div class="vit-placeholder" style="height:180px;">Chart placeholder</div></div>
+            <div class="vit-card"><h3>Total Picks Per Day</h3><div class="vit-placeholder" style="height:180px;">Bar chart placeholder</div></div>
+            <div class="vit-card"><h3>Activity Feed</h3><ul id="activity" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;"></ul></div>
+          </div>
+        </section>
+
+        <section id="view-companies" class="view" style="display:none;">
+          <div class="vit-section-title">
+            <div><h3>Companies</h3><p style="color:var(--muted);">Manage tenants</p></div>
+            <button class="vit-button" id="create-company">Create New Company</button>
+          </div>
+          <div class="vit-card-list" id="company-list"></div>
+        </section>
+
+        <section id="view-warehouses" class="view" style="display:none;">
+          <div class="vit-section-title"><h3>Warehouses</h3></div>
+          <div class="vit-card-list" id="warehouse-tree"></div>
+        </section>
+
+        <section id="view-users" class="view" style="display:none;">
+          <div class="vit-section-title"><h3>Global User Search</h3><button class="vit-button secondary" id="search-users">Refresh</button></div>
+          <div id="global-users"></div>
+        </section>
+
+        <section id="view-plans" class="view" style="display:none;">
+          <div class="vit-section-title"><h3>Plan Management</h3></div>
+          <div id="plans-wrap"></div>
+        </section>
+
+        <section id="view-features" class="view" style="display:none;">
+          <div class="vit-section-title"><h3>Feature Toggles</h3></div>
+          <div class="vit-card" id="features-form"></div>
+        </section>
+
+        <section id="view-metrics" class="view" style="display:none;">
+          <div class="vit-grid">
+            <div class="vit-card"><h3>Total Reads Today</h3><div class="vit-placeholder" style="height:120px;">Metric placeholder</div></div>
+            <div class="vit-card"><h3>Total Writes Today</h3><div class="vit-placeholder" style="height:120px;">Metric placeholder</div></div>
+            <div class="vit-card"><h3>Active Users</h3><div class="vit-placeholder" style="height:120px;">Graph placeholder</div></div>
+            <div class="vit-card"><h3>DB Load</h3><div class="vit-placeholder" style="height:120px;">Gauge placeholder</div></div>
+          </div>
+        </section>
+
+        <section id="view-logs" class="view" style="display:none;">
+          <div class="vit-section-title"><h3>Audit Logs</h3></div>
+          <div class="vit-card" id="audit-list"></div>
+        </section>
+
+        <section id="view-settings" class="view" style="display:none;">
+          <div class="vit-card">
+            <h3>Global Settings</h3>
+            <div class="vit-form-row" style="margin-top:10px;">
+              <input class="vit-input" id="s-plan" placeholder="Default plan">
+              <input class="vit-input" id="s-brand" placeholder="Branding name">
+              <input class="vit-input" id="s-logo" placeholder="Branding logo URL">
+              <input class="vit-input" id="s-email" placeholder="Email sender">
+              <textarea class="vit-input" id="s-template" placeholder="Email template" style="min-height:120px;"></textarea>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+              <button class="vit-button" id="save-settings">Save Settings</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div id="portal-modal"></div>
+
+  <script>
+    const db = firebase.firestore();
+    const { qs, qsa, ce } = vit;
+    const adminEmail = localStorage.vitGlobalAdmin;
+    if (!adminEmail) window.location.href = '/VIT_PORTAL/vit-portal-login.html';
+    qs('#admin-email').textContent = adminEmail;
+    qs('#logout').onclick = () => { delete localStorage.vitGlobalAdmin; window.location.href = '/VIT_PORTAL/vit-portal-login.html'; };
+
+    qsa('.nav-button[data-view]').forEach(btn => btn.onclick = () => showView(btn.dataset.view, btn.textContent));
+
+    const showView = (id, label) => {
+      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+      qs(`#view-${id}`).style.display = 'block';
+      qs('#view-title').textContent = label;
+      qsa('.nav-button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
+    };
+
+    const companyCollection = db.collection('companies');
+
+    const loadDashboard = async () => {
+      const companies = await companyCollection.get();
+      let warehouses = 0; let users = 0;
+      for (const doc of companies.docs) {
+        const wSnap = await companyCollection.doc(doc.id).collection('warehouses').get();
+        warehouses += wSnap.size;
+        for (const wDoc of wSnap.docs) {
+          const uSnap = await companyCollection.doc(doc.id).collection('warehouses').doc(wDoc.id).collection('users').get();
+          users += uSnap.size;
+        }
+      }
+      qs('#kpi-companies').textContent = companies.size;
+      qs('#kpi-warehouses').textContent = warehouses;
+      qs('#kpi-users').textContent = users;
+      qs('#kpi-plans').textContent = companies.docs.filter(d => d.data().plan).length;
+      qs('#kpi-picks').textContent = '-';
+      qs('#kpi-deliveries').textContent = '-';
+    };
+
+    const renderCompanies = async () => {
+      const snap = await companyCollection.get();
+      const list = qs('#company-list');
+      list.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const card = ce('div');
+        card.className = 'vit-card';
+        card.innerHTML = `<h3>${d.name || doc.id}</h3><p style="color:var(--muted);">Plan: ${d.plan || 'n/a'}</p><p>Status: ${d.status || 'active'}</p><div style="display:flex; gap:8px; margin-top:8px;"><button class="vit-button secondary" data-id="${doc.id}" data-action="edit">Edit</button><button class="vit-button secondary" data-id="${doc.id}" data-action="delete">Delete</button></div>`;
+        list.appendChild(card);
+      });
+      qsa('#company-list button').forEach(btn => btn.onclick = () => companyAction(btn.dataset.id, btn.dataset.action));
+    };
+
+    const companyAction = (id, action) => {
+      if (action === 'edit') openCompanyModal(id);
+      if (action === 'delete') vitConfirm('Delete company?', async () => { await companyCollection.doc(id).delete(); renderCompanies(); });
+    };
+
+    const openCompanyModal = async (id = '') => {
+      const modal = qs('#portal-modal');
+      let data = {};
+      if (id) data = (await companyCollection.doc(id).get()).data() || {};
+      modal.innerHTML = `
+        <div class="vit-modal-backdrop">
+          <div class="vit-modal">
+            <h3>${id ? 'Edit' : 'Create'} Company</h3>
+            <div class="vit-form-row" style="margin-top:10px;">
+              <input class="vit-input" id="co-id" placeholder="Company ID" value="${id}" ${id ? 'disabled' : ''}>
+              <input class="vit-input" id="co-name" placeholder="Name" value="${data.name || ''}">
+              <input class="vit-input" id="co-plan" placeholder="Plan" value="${data.plan || ''}">
+              <input class="vit-input" id="co-status" placeholder="Status" value="${data.status || 'active'}">
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
+              <button class="vit-button secondary" id="co-cancel">Cancel</button>
+              <button class="vit-button" id="co-save">Save</button>
+            </div>
+          </div>
+        </div>`;
+      qs('#co-cancel').onclick = () => modal.innerHTML = '';
+      qs('#co-save').onclick = async () => {
+        const cid = id || vit.sanitizeInput(qs('#co-id').value);
+        if (!cid) return vitAlert('Company ID required', 'warning');
+        await companyCollection.doc(cid).set({
+          name: qs('#co-name').value,
+          plan: qs('#co-plan').value,
+          status: qs('#co-status').value || 'active',
+        }, { merge: true });
+        modal.innerHTML = '';
+        renderCompanies();
+      };
+    };
+
+    qs('#create-company').onclick = () => openCompanyModal();
+
+    const renderWarehouses = async () => {
+      const list = qs('#warehouse-tree');
+      list.innerHTML = '';
+      const companies = await companyCollection.get();
+      for (const c of companies.docs) {
+        const wSnap = await companyCollection.doc(c.id).collection('warehouses').get();
+        wSnap.forEach(doc => {
+          const card = ce('div');
+          card.className = 'vit-card';
+          card.innerHTML = `<h3>${doc.id}</h3><p style="color:var(--muted);">${c.id}</p><p>Items: ${doc.data().inventoryCount || '-'}</p><p>Picks: ${doc.data().pickCount || '-'}</p><button class="vit-button secondary" onclick="window.location='/WMS/companyadmin.html'">Open Admin</button>`;
+          list.appendChild(card);
+        });
+      }
+    };
+
+    const renderUsers = async () => {
+      const wrap = qs('#global-users');
+      wrap.innerHTML = '';
+      const table = ce('table'); table.className = 'vit-table';
+      table.innerHTML = '<thead><tr><th>User</th><th>Role</th><th>Company</th><th>Warehouse</th><th>Status</th></tr></thead>';
+      const tbody = ce('tbody');
+      const companies = await companyCollection.get();
+      for (const c of companies.docs) {
+        const wSnap = await companyCollection.doc(c.id).collection('warehouses').get();
+        for (const w of wSnap.docs) {
+          const uSnap = await companyCollection.doc(c.id).collection('warehouses').doc(w.id).collection('users').get();
+          uSnap.forEach(u => {
+            const d = u.data();
+            const tr = ce('tr');
+            tr.innerHTML = `<td>${u.id}</td><td>${d.role || ''}</td><td>${c.id}</td><td>${w.id}</td><td>${d.status || 'active'}</td>`;
+            tbody.appendChild(tr);
+          });
+        }
+      }
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+    };
+
+    qs('#search-users').onclick = renderUsers;
+
+    const renderPlans = async () => {
+      const snap = await companyCollection.get();
+      const wrap = qs('#plans-wrap');
+      wrap.innerHTML = '';
+      snap.forEach(doc => {
+        const data = doc.data();
+        const card = ce('div');
+        card.className = 'vit-card';
+        card.innerHTML = `<h3>${data.name || doc.id}</h3><p>Plan: ${data.plan || 'Demo'}</p><div class="vit-form-row"><input class="vit-input" value="${data.plan || ''}" id="plan-${doc.id}"></div><div style="display:flex; justify-content:flex-end; margin-top:8px;"><button class="vit-button secondary" data-id="${doc.id}">Save</button></div>`;
+        wrap.appendChild(card);
+      });
+      wrap.querySelectorAll('button').forEach(btn => btn.onclick = async () => {
+        const val = qs(`#plan-${btn.dataset.id}`).value;
+        await companyCollection.doc(btn.dataset.id).set({ plan: val }, { merge: true });
+        vitToast('Plan updated');
+      });
+    };
+
+    const renderFeatures = async () => {
+      const ref = db.collection('config').doc('globalFeatures');
+      const snap = await ref.get();
+      const data = snap.data() || {};
+      const wrap = qs('#features-form');
+      wrap.innerHTML = '';
+      const toggles = ['driverAppEnabled','pickerAppEnabled','HRmoduleEnabled','TMSenabled','importAPIenabled','auditLoggingEnabled'];
+      toggles.forEach(key => {
+        const row = ce('div');
+        row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.marginBottom = '8px';
+        row.innerHTML = `<span>${key}</span><input type="checkbox" id="ft-${key}" ${data[key] ? 'checked' : ''}>`;
+        wrap.appendChild(row);
+      });
+      const saveBtn = ce('button'); saveBtn.className = 'vit-button'; saveBtn.textContent = 'Save Toggles';
+      saveBtn.onclick = async () => {
+        const payload = {};
+        toggles.forEach(key => payload[key] = qs(`#ft-${key}`).checked);
+        await ref.set(payload, { merge: true });
+        vitToast('Feature toggles saved');
+      };
+      wrap.appendChild(saveBtn);
+    };
+
+    const renderAuditLogs = async () => {
+      const snap = await db.collection('auditLogs').orderBy('timestamp', 'desc').limit(10).get();
+      const wrap = qs('#audit-list');
+      wrap.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const row = ce('div');
+        row.style.borderBottom = '1px solid var(--border)';
+        row.style.padding = '8px 0';
+        row.innerHTML = `<strong>${d.admin || ''}</strong> — ${d.action || ''} <span style="color:var(--muted);">${d.timestamp || ''}</span>`;
+        wrap.appendChild(row);
+      });
+    };
+
+    const loadSettings = async () => {
+      const snap = await db.collection('config').doc('globalSettings').get();
+      const data = snap.data() || {};
+      qs('#s-plan').value = data.defaultPlan || '';
+      qs('#s-brand').value = data.brandingName || '';
+      qs('#s-logo').value = data.brandingLogo || '';
+      qs('#s-email').value = data.emailSender || '';
+      qs('#s-template').value = data.emailTemplate || '';
+    };
+
+    qs('#save-settings').onclick = async () => {
+      await db.collection('config').doc('globalSettings').set({
+        defaultPlan: qs('#s-plan').value,
+        brandingName: qs('#s-brand').value,
+        brandingLogo: qs('#s-logo').value,
+        emailSender: qs('#s-email').value,
+        emailTemplate: qs('#s-template').value,
+      }, { merge: true });
+      vitToast('Settings saved');
+    };
+
+    loadDashboard();
+    renderCompanies();
+    renderWarehouses();
+    renderUsers();
+    renderPlans();
+    renderFeatures();
+    renderAuditLogs();
+    loadSettings();
+  </script>
+</body>
+</html>

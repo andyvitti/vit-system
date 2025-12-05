@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT Picker App</title>
+  <link rel="stylesheet" href="/assets/vit.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+</head>
+<body>
+  <header class="vit-topbar">
+    <a href="/WMS/app.html" class="vit-chip">← Back to WMS Dashboard</a>
+    <h2>Picker App</h2>
+    <div class="meta">
+      <div class="vit-chip" id="meta-warehouse">Warehouse</div>
+      <div class="vit-chip" id="meta-user">User</div>
+      <button class="vit-button secondary" id="btn-logout">Logout</button>
+    </div>
+  </header>
+
+  <main style="padding:20px;">
+    <section id="view-picks">
+      <div class="vit-section-title">
+        <div><h3>Assigned Picks</h3><p style="color:var(--muted);">Swipable pick list</p></div>
+      </div>
+      <div class="vit-card-list" id="assigned-picks"></div>
+    </section>
+
+    <section id="view-items" style="display:none;">
+      <div class="vit-section-title">
+        <div><h3 id="pick-title">Pick Items</h3><p style="color:var(--muted);">Swipe to adjust picked qty</p></div>
+        <button class="vit-button secondary" id="back-to-picks">Back</button>
+      </div>
+      <div id="items-container" style="display:flex; flex-direction:column; gap:14px;"></div>
+      <div id="complete-bar" class="vit-card" style="display:none; margin-top:14px;">
+        <div class="vit-form-row">
+          <input class="vit-input" id="pallet-count" type="number" placeholder="Pallet Count">
+          <button class="vit-button" id="btn-complete">Complete Pick</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const db = firebase.firestore();
+    const { qs } = vit;
+    const session = vit.loadSession();
+    if (!session.role) window.location.href = '/index.html';
+    if (session.role !== 'picker') {
+      if (session.role === 'driver') window.location.href = '/TMS/driversapp.html';
+      else window.location.href = '/WMS/app.html';
+    }
+
+    document.getElementById('meta-warehouse').textContent = session.warehouse;
+    document.getElementById('meta-user').textContent = session.user;
+    document.getElementById('btn-logout').onclick = () => { vit.clearSession(); window.location.href = '/index.html'; };
+
+    const picksRef = db.collection('companies').doc(session.company).collection('warehouses').doc(session.warehouse).collection('picks');
+    let activePickId = null;
+    let activeItems = [];
+
+    const showView = (id) => {
+      document.getElementById('view-picks').style.display = id === 'picks' ? 'block' : 'none';
+      document.getElementById('view-items').style.display = id === 'items' ? 'block' : 'none';
+    };
+
+    const loadAssignedPicks = () => {
+      picksRef.where('assignedTo', '==', session.user).where('status', '!=', 'complete').onSnapshot((snap) => {
+        const container = document.getElementById('assigned-picks');
+        container.innerHTML = '';
+        if (snap.empty) container.innerHTML = '<div class="vit-placeholder">No active picks</div>';
+        snap.forEach(doc => {
+          const d = doc.data();
+          const total = d.items?.length || 0;
+          const done = d.items?.filter(i => i.qtyPicked >= i.qtyNeeded).length || 0;
+          const card = document.createElement('div');
+          card.className = 'vit-card';
+          card.innerHTML = `<h3>${doc.id}</h3><p>${d.customer || ''}</p><p style="color:var(--muted);">${d.address || ''}</p><div class="vit-progress"><div class="fill" style="width:${total ? (done/total)*100 : 0}%;"></div></div><p style="color:var(--muted);">${done}/${total} items picked</p><button class="vit-button" data-id="${doc.id}">Start Pick</button>`;
+          container.appendChild(card);
+        });
+        container.querySelectorAll('button').forEach(btn => btn.onclick = () => loadPickItems(btn.dataset.id));
+      });
+    };
+
+    const loadPickItems = async (pickId) => {
+      try {
+        vitLoader(true);
+        const doc = await picksRef.doc(pickId).get();
+        if (!doc.exists) return vitAlert('Pick not found', 'error');
+        activePickId = pickId;
+        activeItems = doc.data().items || [];
+        document.getElementById('pick-title').textContent = `Pick ${pickId}`;
+        renderItems();
+        showView('items');
+      } catch (e) { vit.handleError(e); }
+      finally { vitLoader(false); }
+    };
+
+    const renderItems = () => {
+      const container = document.getElementById('items-container');
+      container.innerHTML = '';
+      activeItems.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'vit-card';
+        card.innerHTML = `<h3>${item.name}</h3><p style="color:var(--muted);">Needed: ${item.qtyNeeded} | Picked: <span id="picked-${idx}">${item.qtyPicked || 0}</span></p><div class="vit-progress"><div class="fill" style="width:${item.qtyNeeded ? Math.min(100, (item.qtyPicked || 0) / item.qtyNeeded * 100) : 0}%;"></div></div>`;
+        attachSwipe(card, idx);
+        container.appendChild(card);
+      });
+      const complete = activeItems.every(i => (i.qtyPicked || 0) >= (i.qtyNeeded || 0));
+      document.getElementById('complete-bar').style.display = complete ? 'block' : 'none';
+    };
+
+    const attachSwipe = (card, idx) => {
+      let startX = 0;
+      card.addEventListener('touchstart', (e) => startX = e.touches[0].clientX);
+      card.addEventListener('touchend', (e) => {
+        const diff = e.changedTouches[0].clientX - startX;
+        if (diff > 40) updatePickedQty(idx, (activeItems[idx].qtyPicked || 0) + 1);
+        if (diff < -40) updatePickedQty(idx, Math.max(0, (activeItems[idx].qtyPicked || 0) - 1));
+      });
+      card.onclick = () => updatePickedQty(idx, (activeItems[idx].qtyPicked || 0) + 1);
+    };
+
+    const updatePickedQty = async (idx, newQty) => {
+      activeItems[idx].qtyPicked = newQty;
+      qs(`#picked-${idx}`).textContent = newQty;
+      renderItems();
+      try {
+        await picksRef.doc(activePickId).set({ items: activeItems }, { merge: true });
+      } catch (e) { vit.handleError(e, false); }
+    };
+
+    document.getElementById('btn-complete').onclick = async () => {
+      const palletCount = Number(qs('#pallet-count').value || 0);
+      try {
+        vitLoader(true);
+        await picksRef.doc(activePickId).set({ status: 'complete', completedAt: new Date().toISOString(), palletCount, items: activeItems }, { merge: true });
+        vitToast('Pick completed');
+        showView('picks');
+      } catch (e) { vit.handleError(e); }
+      finally { vitLoader(false); }
+    };
+
+    document.getElementById('back-to-picks').onclick = () => showView('picks');
+
+    loadAssignedPicks();
+  </script>
+</body>
+</html>
