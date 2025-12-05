@@ -1,17 +1,354 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Picker App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIT — Picker App</title>
   <link rel="stylesheet" href="/assets/vit.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/vit.js"></script>
 </head>
 <body>
-  <h1>Picker App Loaded</h1>
+  <div class="page">
+    <header class="topbar vit-card">
+      <div class="topbar-left">
+        <a class="vit-button ghost" href="/WMS/app.html">← Back to WMS Dashboard</a>
+      </div>
+      <div class="topbar-center">
+        <h1>Picker App</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="user-meta">
+          <span id="meta-warehouse"></span>
+          <span id="meta-user"></span>
+        </div>
+        <button class="vit-button" id="logout-btn">Logout</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="view-picks" class="view active">
+        <div class="view-header">
+          <div>
+            <h2>Your Assigned Picks</h2>
+            <p>Swipe into a pick to start item-by-item picking.</p>
+          </div>
+          <button class="vit-button" id="refresh-picks">Refresh</button>
+        </div>
+        <div id="picks-list" class="picks-grid"></div>
+        <div id="no-picks" class="vit-card subtle" style="display:none;">
+          <h3>No active picks</h3>
+          <p>You're all caught up! New assignments will appear here.</p>
+        </div>
+      </section>
+
+      <section id="view-items" class="view">
+        <div class="view-header">
+          <div>
+            <h2 id="pick-title">Pick Items</h2>
+            <p id="pick-customer"></p>
+          </div>
+          <div class="view-actions">
+            <button class="vit-button ghost" id="back-to-picks">← Back to picks</button>
+          </div>
+        </div>
+        <div id="items-container" class="items-stack"></div>
+        <div id="complete-panel" class="vit-card" style="display:none;">
+          <div class="form-row">
+            <label for="pallet-count">Pallet Count</label>
+            <input class="vit-input" id="pallet-count" type="number" min="0" placeholder="Enter pallet count" />
+          </div>
+          <button class="vit-button" id="complete-pick-btn">Complete Pick</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      session: null,
+      db: null,
+      currentPickId: null,
+      currentItems: [],
+    };
+
+    function initApp() {
+      state.session = window.vit?.loadSession();
+      if (!state.session || !state.session.user || !state.session.role) {
+        window.location.href = '/index.html';
+        return;
+      }
+
+      const { role } = state.session;
+      if (role !== 'picker') {
+        if (role === 'driver') {
+          window.location.href = '/TMS/driversapp.html';
+        } else {
+          window.location.href = '/WMS/app.html';
+        }
+        return;
+      }
+
+      document.getElementById('meta-warehouse').textContent = `Warehouse: ${state.session.warehouse || ''}`;
+      document.getElementById('meta-user').textContent = `User: ${state.session.user || ''}`;
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(window.firebaseConfig);
+      }
+      state.db = firebase.firestore();
+
+      attachHandlers();
+      loadAssignedPicks();
+    }
+
+    function attachHandlers() {
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        window.vit?.clearSession();
+        window.location.href = '/index.html';
+      });
+
+      document.getElementById('refresh-picks').addEventListener('click', loadAssignedPicks);
+      document.getElementById('back-to-picks').addEventListener('click', () => showView('view-picks'));
+      document.getElementById('complete-pick-btn').addEventListener('click', () => completePick(state.currentPickId));
+    }
+
+    async function loadAssignedPicks() {
+      try {
+        window.vit?.vitLoader(true);
+        const listEl = document.getElementById('picks-list');
+        listEl.innerHTML = '';
+        document.getElementById('no-picks').style.display = 'none';
+
+        const picksRef = state.db
+          .collection('companies').doc(state.session.company)
+          .collection('warehouses').doc(state.session.warehouse)
+          .collection('picks')
+          .where('assignedTo', '==', state.session.user);
+
+        const snapshot = await picksRef.get();
+        const picks = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(p => p.status !== 'complete');
+
+        if (!picks.length) {
+          document.getElementById('no-picks').style.display = 'block';
+        }
+
+        picks.forEach(pick => {
+          const items = Array.isArray(pick.items) ? pick.items : [];
+          const totalItems = items.reduce((sum, item) => sum + (item.qtyNeeded || 0), 0);
+          const pickedItems = items.reduce((sum, item) => sum + (item.qtyPicked || 0), 0);
+
+          const card = document.createElement('div');
+          card.className = 'vit-card pick-card';
+          card.innerHTML = `
+            <div class="pick-meta">
+              <div>
+                <p class="muted">Pick ID</p>
+                <h3>${pick.id}</h3>
+              </div>
+              <div class="status-chip">${pick.status || 'pending'}</div>
+            </div>
+            <p class="muted">Customer</p>
+            <p class="strong">${pick.customer || 'N/A'}</p>
+            <p class="muted">Address</p>
+            <p>${pick.address || 'Not provided'}</p>
+            <div class="progress-row">
+              <div class="progress-meta">
+                <span>${pickedItems}</span>/<span>${totalItems}</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width:${totalItems ? Math.min(100, (pickedItems / totalItems) * 100) : 0}%;"></div>
+              </div>
+            </div>
+            <button class="vit-button full" data-pick="${pick.id}">Start Pick</button>
+          `;
+          card.querySelector('button').addEventListener('click', () => loadPickItems(pick.id));
+          listEl.appendChild(card);
+        });
+      } catch (error) {
+        window.vit?.handleError(error);
+      } finally {
+        window.vit?.vitLoader(false);
+      }
+    }
+
+    async function loadPickItems(pickId) {
+      if (!pickId) return;
+      try {
+        window.vit?.vitLoader(true);
+        state.currentPickId = pickId;
+        const docRef = state.db
+          .collection('companies').doc(state.session.company)
+          .collection('warehouses').doc(state.session.warehouse)
+          .collection('picks').doc(pickId);
+        const snapshot = await docRef.get();
+        if (!snapshot.exists) {
+          window.vit?.vitAlert('Pick not found', 'error');
+          return;
+        }
+        const data = snapshot.data();
+        state.currentItems = Array.isArray(data.items) ? data.items : [];
+        document.getElementById('pick-title').textContent = `Pick ${pickId}`;
+        document.getElementById('pick-customer').textContent = data.customer ? `Customer: ${data.customer}` : '';
+        renderItemCards();
+        showView('view-items');
+      } catch (error) {
+        window.vit?.handleError(error);
+      } finally {
+        window.vit?.vitLoader(false);
+      }
+    }
+
+    function renderItemCards() {
+      const container = document.getElementById('items-container');
+      container.innerHTML = '';
+      state.currentItems.forEach((item, index) => {
+        const needed = Number(item.qtyNeeded) || 0;
+        const picked = Number(item.qtyPicked) || 0;
+        const card = document.createElement('div');
+        card.className = 'vit-card item-card';
+        card.dataset.index = index;
+        card.innerHTML = `
+          <div class="item-header">
+            <h3>${item.name || 'Item'}</h3>
+            <div class="badge">${picked}/${needed}</div>
+          </div>
+          <p class="muted">Swipe right to add, left to subtract.</p>
+          <div class="progress-bar large">
+            <div class="progress-fill" style="width:${needed ? Math.min(100, (picked / needed) * 100) : 0}%;"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      initSwipeCardHandlers();
+      toggleCompletePanel();
+    }
+
+    function initSwipeCardHandlers() {
+      const cards = document.querySelectorAll('.item-card');
+      cards.forEach(card => {
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+
+        const onStart = (event) => {
+          isDragging = true;
+          startX = event.touches ? event.touches[0].clientX : event.clientX;
+          card.classList.add('dragging');
+        };
+
+        const onMove = (event) => {
+          if (!isDragging) return;
+          currentX = event.touches ? event.touches[0].clientX : event.clientX;
+          const delta = currentX - startX;
+          card.style.transform = `translateX(${delta}px)`;
+          card.style.opacity = `${Math.max(0.4, 1 - Math.abs(delta) / 300)}`;
+        };
+
+        const onEnd = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          const delta = currentX - startX;
+          card.classList.remove('dragging');
+          card.style.transform = '';
+          card.style.opacity = '';
+
+          if (delta > 80) {
+            adjustQuantity(card, 1);
+          } else if (delta < -80) {
+            adjustQuantity(card, -1);
+          }
+        };
+
+        card.addEventListener('touchstart', onStart);
+        card.addEventListener('touchmove', onMove);
+        card.addEventListener('touchend', onEnd);
+        card.addEventListener('mousedown', onStart);
+        card.addEventListener('mousemove', onMove);
+        card.addEventListener('mouseup', onEnd);
+        card.addEventListener('mouseleave', onEnd);
+      });
+    }
+
+    function adjustQuantity(card, delta) {
+      const index = Number(card.dataset.index);
+      const item = state.currentItems[index];
+      if (!item) return;
+
+      const needed = Number(item.qtyNeeded) || 0;
+      const current = Number(item.qtyPicked) || 0;
+      const next = Math.max(0, current + delta);
+      state.currentItems[index].qtyPicked = next;
+      updatePickedQty(state.currentPickId, index, next);
+
+      const badge = card.querySelector('.badge');
+      const fill = card.querySelector('.progress-fill');
+      badge.textContent = `${next}/${needed}`;
+      fill.style.width = `${needed ? Math.min(100, (next / needed) * 100) : 0}%`;
+
+      toggleCompletePanel();
+    }
+
+    async function updatePickedQty(pickId, itemIndex, newQty) {
+      if (!pickId) return;
+      try {
+        const updatedItems = state.currentItems.map((item, idx) => idx === itemIndex ? { ...item, qtyPicked: newQty } : item);
+        await state.db
+          .collection('companies').doc(state.session.company)
+          .collection('warehouses').doc(state.session.warehouse)
+          .collection('picks').doc(pickId)
+          .update({ items: updatedItems });
+      } catch (error) {
+        window.vit?.handleError(error);
+      }
+    }
+
+    function toggleCompletePanel() {
+      const completePanel = document.getElementById('complete-panel');
+      const allDone = state.currentItems.every(item => (Number(item.qtyPicked) || 0) >= (Number(item.qtyNeeded) || 0));
+      completePanel.style.display = allDone && state.currentItems.length ? 'block' : 'none';
+    }
+
+    async function completePick(pickId) {
+      if (!pickId) return;
+      const palletInput = document.getElementById('pallet-count');
+      const palletCount = Number(palletInput.value) || 0;
+      try {
+        window.vit?.vitLoader(true);
+        await state.db
+          .collection('companies').doc(state.session.company)
+          .collection('warehouses').doc(state.session.warehouse)
+          .collection('picks').doc(pickId)
+          .update({
+            status: 'complete',
+            completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            palletCount,
+            items: state.currentItems,
+          });
+        window.vit?.vitAlert('Pick completed!', 'success');
+        palletInput.value = '';
+        showView('view-picks');
+        loadAssignedPicks();
+      } catch (error) {
+        window.vit?.handleError(error);
+      } finally {
+        window.vit?.vitLoader(false);
+      }
+    }
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(view => {
+        view.classList.toggle('active', view.id === id);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
 </body>
+<html>
+<head><title>VIT — Picker App</title></head>
+<body><h2>Picker App — Coming Soon</h2></body>
 </html>
