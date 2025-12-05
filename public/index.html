@@ -1,42 +1,132 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VIT System — Access</title>
-  <link rel="stylesheet" href="/assets/vit.css">
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-  <script src="/assets/firebase-config.js"></script>
-  <script src="/assets/vit.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VIT – Login</title>
+
+<!-- Global VIT Theme -->
+<link rel="stylesheet" href="/assets/vit.css">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<!-- Shared Firebase Config -->
+<script src="/assets/firebase-config.js"></script>
+
 </head>
 <body>
-  <main class="vit-container" style="display:flex; justify-content:center; align-items:center; min-height:90vh;">
-    <div class="vit-card" style="max-width:520px; width:100%; text-align:center;">
-      <img src="/assets/vit-logo.png" alt="VIT Logo" style="width:80px; margin-bottom:14px;" />
-      <h1>Welcome to VIT</h1>
-      <p style="color:var(--muted);">Unified access for Warehouse (WMS), Transport (TMS), and Portal operations.</p>
-      <div style="margin:18px 0; display:flex; flex-direction:column; gap:10px;">
-        <button class="vit-button" id="btn-company">Company Login</button>
-        <button class="vit-button secondary" id="btn-portal">Super Admin Portal</button>
-        <button class="vit-button secondary" id="btn-session" style="display:none;">Continue as <span id="session-user"></span></button>
-      </div>
-      <p class="vit-breadcrumbs" style="justify-content:center;">Need help? <span>support@vit.example</span></p>
+
+<div class="vit-center" style="min-height:100vh;">
+
+    <div class="vit-card" style="width:360px; padding:30px; text-align:center;">
+        
+        <img src="/assets/vit-logo.png" alt="VIT Logo" style="width:150px; margin-bottom:25px;">
+
+        <h2 class="vit-section-title" style="text-align:center; margin-bottom:20px;">
+            Welcome to VIT System
+        </h2>
+
+        <input id="companyId" class="vit-input" placeholder="Company ID">
+        <input id="username" class="vit-input" placeholder="Username">
+        <input id="password" class="vit-input" type="password" placeholder="Password">
+
+        <button onclick="login()" class="vit-button" style="width:100%; margin-top:15px;">
+            Login
+        </button>
+
+        <div id="errorBox" style="color:#ef4444; margin-top:12px; font-size:14px;"></div>
+
     </div>
-  </main>
-  <script>
-    const session = vit.loadSession();
-    const sessionBtn = document.getElementById('btn-session');
-    const sessionUser = document.getElementById('session-user');
-    if (session?.user && session?.role) {
-      sessionUser.textContent = `${session.user} (${session.role})`;
-      sessionBtn.style.display = 'inline-flex';
+
+</div>
+
+<script>
+async function login() {
+    const companyId = document.getElementById("companyId").value.trim();
+    const username  = document.getElementById("username").value.trim();
+    const password  = document.getElementById("password").value.trim();
+    const errorBox  = document.getElementById("errorBox");
+
+    errorBox.textContent = "";
+
+    if (!companyId || !username || !password) {
+        errorBox.textContent = "All fields are required.";
+        return;
     }
-    document.getElementById('btn-company').onclick = () => window.location.href = '/company.html';
-    document.getElementById('btn-portal').onclick = () => window.location.href = '/VIT_PORTAL/vit-portal-login.html';
-    sessionBtn.onclick = () => vit.roleRedirect();
-  </script>
+
+    try {
+        // Load warehouses for company
+        const whSnap = await db.collection("companies")
+            .doc(companyId)
+            .collection("warehouses")
+            .get();
+
+        if (whSnap.empty) {
+            errorBox.textContent = "Company not found.";
+            return;
+        }
+
+        let foundUser = null;
+        let foundWarehouse = null;
+
+        for (let wh of whSnap.docs) {
+            const whName = wh.id;
+            const userRef = db.collection("companies")
+                .doc(companyId)
+                .collection("warehouses")
+                .doc(whName)
+                .collection("users")
+                .doc(username);
+
+            const userDoc = await userRef.get();
+
+            if (userDoc.exists) {
+                foundUser = userDoc.data();
+                foundWarehouse = whName;
+                break;
+            }
+        }
+
+        if (!foundUser) {
+            errorBox.textContent = "User not found.";
+            return;
+        }
+
+        if (foundUser.password !== password) {
+            errorBox.textContent = "Incorrect password.";
+            return;
+        }
+
+        // Save session
+        localStorage.setItem("vitCompany", companyId);
+        localStorage.setItem("vitWarehouse", foundWarehouse);
+        localStorage.setItem("vitUser", username);
+        localStorage.setItem("vitRole", foundUser.role);
+
+        // Redirect based on role
+        switch (foundUser.role) {
+            case "admin":
+                window.location.href = "/WMS/companyadmin.html";
+                break;
+            case "manager":
+            case "picker":
+                window.location.href = "/WMS/app.html";
+                break;
+            case "driver":
+                window.location.href = "/TMS/driversapp.html";
+                break;
+            default:
+                window.location.href = "/WMS/app.html";
+        }
+
+    } catch (err) {
+        console.error(err);
+        errorBox.textContent = "Login failed. Try again.";
+    }
+}
+</script>
+
 </body>
 </html>

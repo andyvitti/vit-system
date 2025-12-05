@@ -1,398 +1,881 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VIT WMS</title>
-  <link rel="stylesheet" href="/assets/vit.css">
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-  <script src="/assets/firebase-config.js"></script>
-  <script src="/assets/vit.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIT System — WMS</title>
+  <link rel="stylesheet" href="/assets/vit.css" />
+  <style>
+    body {
+      background: radial-gradient(circle at 12% 20%, rgba(34, 197, 94, 0.07), transparent 32%),
+        radial-gradient(circle at 80% 0%, rgba(34, 197, 94, 0.06), transparent 28%),
+        var(--vit-bg);
+    }
+
+    .wms-shell {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+      gap: 18px;
+      padding: 18px;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 18px;
+      height: calc(100vh - 36px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid rgba(34, 197, 94, 0.32);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .brand h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .nav-group {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .nav-btn {
+      width: 100%;
+      justify-content: flex-start;
+      background: rgba(10, 15, 20, 0.82);
+      border: 1px solid rgba(34, 197, 94, 0.28);
+      color: #d9f1e0;
+      transition: all 140ms ease;
+    }
+
+    .nav-btn.active {
+      border-color: rgba(34, 197, 94, 0.7);
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.45), 0 16px 38px rgba(34, 197, 94, 0.14);
+    }
+
+    .nav-spacer {
+      border-top: 1px solid rgba(34, 197, 94, 0.16);
+      margin: 4px 0;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      border: 1px solid rgba(34, 197, 94, 0.32);
+      margin-bottom: 14px;
+    }
+
+    .top-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 197, 94, 0.32);
+      background: rgba(10, 15, 20, 0.7);
+      color: #b6d6c2;
+      font-size: 13px;
+    }
+
+    .views {
+      display: grid;
+      gap: 14px;
+    }
+
+    .view {
+      display: none;
+      gap: 14px;
+    }
+
+    .view.active {
+      display: grid;
+    }
+
+    .card-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .metric-value {
+      font-size: 28px;
+      margin: 4px 0 0;
+    }
+
+    .subtle {
+      color: #9fb7a4;
+      font-size: 13px;
+    }
+
+    .table-shell {
+      overflow: auto;
+      border-radius: var(--vit-radius-lg);
+      border: 1px solid rgba(34, 197, 94, 0.16);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(10, 15, 20, 0.75);
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(34, 197, 94, 0.12);
+    }
+
+    th {
+      color: #c1e7cf;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    tr:hover td {
+      background: rgba(34, 197, 94, 0.03);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      width: min(320px, 100%);
+    }
+
+    .muted-text {
+      color: #98b59f;
+      font-size: 14px;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 40;
+    }
+
+    .hidden { display: none; }
+
+    .badge { font-size: 12px; padding: 6px 10px; border-radius: 999px; }
+
+    @media (max-width: 960px) {
+      .wms-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: relative;
+        height: auto;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="vit-layout">
-    <aside class="vit-sidebar" id="sidebar"></aside>
-    <div style="min-height:100vh; background:rgba(0,0,0,0.35);">
-      <header class="vit-topbar">
-        <div>
-          <div class="vit-breadcrumbs">WMS <span>Dashboard</span></div>
-          <h2 id="view-title">Dashboard</h2>
+  <div class="wms-shell">
+    <aside class="vit-card sidebar" id="sidebar">
+      <div class="brand">
+        <h2>VIT WMS</h2>
+        <span class="pill" id="role-pill">Role</span>
+      </div>
+      <div class="nav-group" id="nav-links">
+        <!-- Navigation buttons injected -->
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <div class="vit-card topbar">
+        <div class="top-meta">
+          <span class="pill" id="company-pill">Company</span>
+          <span class="pill" id="warehouse-pill">Warehouse</span>
+          <span class="pill" id="user-pill">User</span>
         </div>
-        <div class="meta">
-          <div class="vit-chip" id="meta-warehouse">Warehouse</div>
-          <div class="vit-chip" id="meta-user">User</div>
-          <button class="vit-button secondary" id="btn-logout">Logout</button>
+        <div class="top-actions">
+          <button class="vit-button ghost" id="refresh-dashboard">Refresh</button>
         </div>
-      </header>
-      <main style="padding:20px;">
-        <section id="view-dashboard" class="view">
-          <div class="vit-grid">
-            <div class="vit-card"><p>Total SKUs</p><h2 id="stat-skus">-</h2></div>
-            <div class="vit-card"><p>Total Quantity</p><h2 id="stat-qty">-</h2></div>
-            <div class="vit-card"><p>Active Picks</p><h2 id="stat-active">-</h2></div>
-            <div class="vit-card"><p>Completed Picks Today</p><h2 id="stat-complete">-</h2></div>
-            <div class="vit-card"><p>Incoming Deliveries Today</p><h2 id="stat-deliveries">-</h2></div>
+      </div>
+
+      <div class="views">
+        <section class="view active" id="view-dashboard">
+          <div class="section-head">
+            <h3>Dashboard</h3>
+            <p class="muted-text">Real-time warehouse pulse</p>
+          </div>
+          <div class="card-grid" id="dashboard-cards">
+            <div class="vit-card">
+              <p class="subtle">Total SKUs</p>
+              <p class="metric-value" id="metric-skus">0</p>
+            </div>
+            <div class="vit-card">
+              <p class="subtle">Total Inventory Qty</p>
+              <p class="metric-value" id="metric-qty">0</p>
+            </div>
+            <div class="vit-card">
+              <p class="subtle">Active Picks</p>
+              <p class="metric-value" id="metric-active-picks">0</p>
+            </div>
+            <div class="vit-card">
+              <p class="subtle">Completed Picks Today</p>
+              <p class="metric-value" id="metric-completed-today">0</p>
+            </div>
+            <div class="vit-card">
+              <p class="subtle">Incoming Deliveries Today</p>
+              <p class="metric-value" id="metric-incoming">0</p>
+            </div>
           </div>
         </section>
 
-        <section id="view-inventory" class="view" style="display:none;">
-          <div class="vit-section-title">
+        <section class="view" id="view-inventory">
+          <div class="section-head">
             <div>
               <h3>Inventory</h3>
-              <p style="color:var(--muted);">Live view of stock</p>
+              <p class="muted-text">Live stock overview</p>
             </div>
-            <div style="display:flex; gap:8px;">
-              <input class="vit-input" id="inventory-search" placeholder="Search SKU or name" style="max-width:240px;">
-              <button class="vit-button" id="btn-add-item">Add Item</button>
+            <div class="section-head">
+              <input id="inventory-search" class="vit-input search-input" placeholder="Search name or SKU" />
+              <button class="vit-button" id="open-add-item">Add Item</button>
             </div>
           </div>
-          <div class="vit-panel">
-            <table class="vit-table" id="inventory-table">
-              <thead><tr><th>Name</th><th>SKU</th><th>Qty</th><th>Location</th><th></th></tr></thead>
-              <tbody></tbody>
+          <div class="table-shell vit-card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>SKU</th>
+                  <th>Qty</th>
+                  <th>Location</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-body">
+                <tr><td colspan="5" class="muted-text">Loading...</td></tr>
+              </tbody>
             </table>
           </div>
         </section>
 
-        <section id="view-goods" class="view" style="display:none;">
-          <div class="vit-section-title">
-            <div><h3>Goods In</h3><p style="color:var(--muted);">Record incoming deliveries</p></div>
-            <button class="vit-button" id="btn-add-goods">Add Delivery</button>
+        <section class="view" id="view-goodsin">
+          <div class="section-head">
+            <div>
+              <h3>Goods In</h3>
+              <p class="muted-text">Record incoming deliveries</p>
+            </div>
           </div>
-          <div class="vit-panel">
-            <table class="vit-table" id="goods-table"><thead><tr><th>Reference</th><th>Item</th><th>Qty</th><th>Date</th></tr></thead><tbody></tbody></table>
+          <div class="vit-card" style="display:grid; gap:12px;">
+            <div class="vit-grid cols-2">
+              <label>Item Name<input id="goods-item" class="vit-input" placeholder="Item name" /></label>
+              <label>SKU<input id="goods-sku" class="vit-input" placeholder="SKU" /></label>
+              <label>Quantity<input id="goods-qty" type="number" min="1" class="vit-input" placeholder="Quantity" /></label>
+              <label>Reference<input id="goods-ref" class="vit-input" placeholder="Delivery reference" /></label>
+              <label>Date<input id="goods-date" type="date" class="vit-input" /></label>
+              <label>Notes<textarea id="goods-notes" class="vit-input" rows="2" placeholder="Optional"></textarea></label>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+              <button class="vit-button" id="submit-goods">Add Delivery</button>
+            </div>
           </div>
-        </section>
-
-        <section id="view-pickmanage" class="view" style="display:none;">
-          <div class="vit-section-title">
-            <div><h3>Pick Management</h3><p style="color:var(--muted);">Create and assign picks</p></div>
-            <button class="vit-button" id="btn-create-pick">Create Pick</button>
-          </div>
-          <div class="vit-card-list" id="pick-list"></div>
-        </section>
-
-        <section id="view-mypicks" class="view" style="display:none;">
-          <div class="vit-section-title">
-            <h3>My Picks</h3>
-            <p style="color:var(--muted);">Items assigned to you</p>
-          </div>
-          <div class="vit-card-list" id="my-picks"></div>
-        </section>
-
-        <section id="view-settings" class="view" style="display:none;">
           <div class="vit-card">
-            <h3>Session</h3>
-            <p>Signed in as <strong id="settings-user"></strong> in <strong id="settings-warehouse"></strong></p>
-            <button class="vit-button secondary" id="clear-session">Clear Session</button>
+            <h4>Recent Deliveries</h4>
+            <div class="table-shell">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th><th>Item</th><th>SKU</th><th>Qty</th><th>Reference</th><th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="goods-body">
+                  <tr><td colspan="6" class="muted-text">No entries yet</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
-      </main>
+
+        <section class="view" id="view-pick-mgmt">
+          <div class="section-head">
+            <div>
+              <h3>Pick Management</h3>
+              <p class="muted-text">Create and oversee picks</p>
+            </div>
+            <button class="vit-button" id="create-pick">Create Pick</button>
+          </div>
+          <div class="list" id="pick-list">
+            <div class="vit-card">Loading picks...</div>
+          </div>
+        </section>
+
+        <section class="view" id="view-mypicks">
+          <div class="section-head">
+            <div>
+              <h3>My Picks</h3>
+              <p class="muted-text">Assignments for you</p>
+            </div>
+          </div>
+          <div class="list" id="my-picks-list">
+            <div class="vit-card">Loading...</div>
+          </div>
+        </section>
+
+        <section class="view" id="view-settings">
+          <div class="vit-card" style="display:grid; gap:12px;">
+            <h3>Settings</h3>
+            <p class="muted-text">Review session and logout</p>
+            <div class="vit-grid cols-2">
+              <div class="vit-card">
+                <p class="subtle">User</p>
+                <p id="settings-user">-</p>
+              </div>
+              <div class="vit-card">
+                <p class="subtle">Warehouse</p>
+                <p id="settings-warehouse">-</p>
+              </div>
+            </div>
+            <button class="vit-button danger" id="logout-btn">Clear Session & Logout</button>
+          </div>
+        </section>
+      </div>
     </div>
   </div>
 
-  <div id="modal-container"></div>
+  <div class="modal-backdrop hidden" id="item-modal">
+    <div class="vit-card" style="width:min(520px, 100%); display:grid; gap:12px;">
+      <div class="section-head">
+        <h3 id="item-modal-title">Add Item</h3>
+        <button class="vit-button ghost" id="close-item-modal">Close</button>
+      </div>
+      <label>Name<input id="modal-item-name" class="vit-input" placeholder="Item name" /></label>
+      <label>SKU<input id="modal-item-sku" class="vit-input" placeholder="SKU" /></label>
+      <label>Quantity<input id="modal-item-qty" type="number" min="0" class="vit-input" placeholder="Quantity" /></label>
+      <label>Location<input id="modal-item-location" class="vit-input" placeholder="Location" /></label>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="vit-button" id="save-item">Save Item</button>
+      </div>
+    </div>
+  </div>
 
-  <script>
-    const db = firebase.firestore();
-    const { qs, qsa, ce } = vit;
-    const session = vit.loadSession();
-    if (!session.role) window.location.href = '/index.html';
-    if (session.role === 'driver') window.location.href = '/TMS/driversapp.html';
+  <div class="modal-backdrop hidden" id="pick-modal">
+    <div class="vit-card" style="width:min(620px, 100%); display:grid; gap:12px;">
+      <div class="section-head">
+        <h3>Create Pick</h3>
+        <button class="vit-button ghost" id="close-pick-modal">Close</button>
+      </div>
+      <div class="vit-grid cols-2">
+        <label>Customer<input id="pick-customer" class="vit-input" placeholder="Customer name" /></label>
+        <label>Due Date<input id="pick-due" type="date" class="vit-input" /></label>
+        <label>Address<input id="pick-address" class="vit-input" placeholder="Delivery address" /></label>
+        <label>Pallet Count<input id="pick-pallets" type="number" min="0" class="vit-input" placeholder="0" /></label>
+        <label>Assign To<input id="pick-assignee" class="vit-input" placeholder="picker username" /></label>
+        <label>Status<select id="pick-status" class="vit-input"><option value="active">Active</option><option value="pending">Pending</option></select></label>
+      </div>
+      <label>Items (one per line: name | qty)<textarea id="pick-items" class="vit-input" rows="3" placeholder="Widget A | 2"></textarea></label>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="vit-button" id="save-pick">Save Pick</button>
+      </div>
+    </div>
+  </div>
 
-    document.getElementById('meta-warehouse').textContent = session.warehouse;
-    document.getElementById('meta-user').textContent = `${session.user} (${session.role})`;
-    document.getElementById('settings-user').textContent = session.user;
-    document.getElementById('settings-warehouse').textContent = session.warehouse;
-    document.getElementById('btn-logout').onclick = () => { vit.clearSession(); window.location.href = '/index.html'; };
-    document.getElementById('clear-session').onclick = () => { vit.clearSession(); vitAlert('Session cleared', 'success'); };
+  <script src="/assets/firebase-config.js"></script>
+  <script src="/assets/vit.js"></script>
+  <script type="module">
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      doc,
+      getDoc,
+      addDoc,
+      setDoc,
+      updateDoc,
+      onSnapshot,
+      query,
+      where,
+      orderBy,
+      serverTimestamp,
+      increment
+    } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-    const navConfig = {
-      admin: [
-        { id: 'dashboard', label: 'Dashboard' },
-        { id: 'inventory', label: 'Inventory' },
-        { id: 'goods', label: 'Goods In' },
-        { id: 'pickmanage', label: 'Pick Management' },
-        { id: 'mypicks', label: 'My Picks' },
-        { id: 'drivers', label: 'Drivers', action: () => window.location.href = '/TMS/driversapp.html' },
-        { id: 'settings', label: 'Settings' },
-        { id: 'logout', label: 'Logout', action: () => { vit.clearSession(); window.location.href = '/index.html'; } },
-      ],
-      manager: [
-        { id: 'dashboard', label: 'Dashboard' },
-        { id: 'inventory', label: 'Inventory' },
-        { id: 'goods', label: 'Goods In' },
-        { id: 'pickmanage', label: 'Pick Management' },
-        { id: 'mypicks', label: 'My Picks' },
-        { id: 'drivers', label: 'Drivers', action: () => window.location.href = '/TMS/driversapp.html' },
-        { id: 'settings', label: 'Settings' },
-        { id: 'logout', label: 'Logout', action: () => { vit.clearSession(); window.location.href = '/index.html'; } },
-      ],
-      picker: [
-        { id: 'mypicks', label: 'My Picks' },
-        { id: 'logout', label: 'Logout', action: () => { vit.clearSession(); window.location.href = '/index.html'; } },
-      ],
+    const session = window.vit.loadSession();
+    if (!session.company || !session.warehouse || !session.role) {
+      window.location.href = "/index.html";
+    }
+    if (session.role === "driver") {
+      window.location.href = "/TMS/driversapp.html";
+    }
+
+    const app = initializeApp(window.firebaseConfig || {});
+    const db = getFirestore(app);
+
+    const refs = {
+      company: (companyId) => window.vit.getCompanyRef ? window.vit.getCompanyRef(companyId) : doc(db, "companies", companyId),
+      warehouse: (companyId, warehouseId) => window.vit.getWarehouseRef ? window.vit.getWarehouseRef(companyId, warehouseId) : doc(db, "companies", companyId, "warehouses", warehouseId),
+      inventory: (companyId, warehouseId) => collection(refs.warehouse(companyId, warehouseId), "inventory"),
+      goodsLogs: (companyId, warehouseId) => collection(refs.warehouse(companyId, warehouseId), "goodsinLogs"),
+      picks: (companyId, warehouseId) => collection(refs.warehouse(companyId, warehouseId), "picks"),
+      users: (companyId, warehouseId) => collection(refs.warehouse(companyId, warehouseId), "users"),
     };
 
-    const buildSidebar = () => {
-      const sidebar = document.getElementById('sidebar');
-      sidebar.innerHTML = '<div class="brand"><img src="/assets/vit-logo.png" alt="VIT" style="width:42px;"> <strong>VIT WMS</strong></div>';
-      navConfig[session.role].forEach((item, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'nav-button';
-        btn.textContent = item.label;
-        btn.onclick = () => {
-          if (item.action) return item.action();
-          showView(item.id, item.label);
-        };
-        if (idx === 0 && !item.action) btn.classList.add('active');
-        sidebar.appendChild(btn);
+    const ui = {
+      inventoryBody: document.getElementById("inventory-body"),
+      goodsBody: document.getElementById("goods-body"),
+      pickList: document.getElementById("pick-list"),
+      myPickList: document.getElementById("my-picks-list"),
+      search: document.getElementById("inventory-search"),
+      refresh: document.getElementById("refresh-dashboard"),
+      rolePill: document.getElementById("role-pill"),
+      companyPill: document.getElementById("company-pill"),
+      warehousePill: document.getElementById("warehouse-pill"),
+      userPill: document.getElementById("user-pill"),
+      settingsUser: document.getElementById("settings-user"),
+      settingsWarehouse: document.getElementById("settings-warehouse"),
+      itemModal: document.getElementById("item-modal"),
+      pickModal: document.getElementById("pick-modal"),
+    };
+
+    const state = {
+      inventory: [],
+      goodsLogs: [],
+      picks: [],
+      searchTerm: "",
+    };
+
+    function updatePills() {
+      ui.rolePill.textContent = session.role.toUpperCase();
+      ui.companyPill.textContent = session.company;
+      ui.warehousePill.textContent = session.warehouse;
+      ui.userPill.textContent = session.user || "User";
+      ui.settingsUser.textContent = session.user || "-";
+      ui.settingsWarehouse.textContent = session.warehouse;
+    }
+
+    function showView(id) {
+      document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+      const target = document.getElementById(id);
+      if (target) target.classList.add("active");
+      document.querySelectorAll(".nav-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.view === id);
       });
-    };
+    }
 
-    const showView = (id, label) => {
-      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-      const target = document.getElementById(`view-${id}`);
-      if (target) target.style.display = 'block';
-      document.getElementById('view-title').textContent = label;
-      document.querySelectorAll('.nav-button').forEach(btn => btn.classList.toggle('active', btn.textContent === label));
-    };
-
-    const inventoryRef = db.collection('companies').doc(session.company).collection('warehouses').doc(session.warehouse).collection('inventory');
-    const picksRef = db.collection('companies').doc(session.company).collection('warehouses').doc(session.warehouse).collection('picks');
-    const goodsRef = db.collection('companies').doc(session.company).collection('warehouses').doc(session.warehouse).collection('goodsinLogs');
-
-    const loadDashboard = async () => {
-      try {
-        const [inventorySnap, picksSnap, goodsSnap] = await Promise.all([
-          inventoryRef.get(), picksRef.get(), goodsRef.get()
-        ]);
-        const totalQty = inventorySnap.docs.reduce((sum, d) => sum + (d.data().qty || 0), 0);
-        const activePicks = picksSnap.docs.filter(d => d.data().status !== 'complete');
-        const completeToday = picksSnap.docs.filter(d => d.data().status === 'complete').length;
-        const goodsToday = goodsSnap.docs.length;
-        document.getElementById('stat-skus').textContent = inventorySnap.size;
-        document.getElementById('stat-qty').textContent = totalQty;
-        document.getElementById('stat-active').textContent = activePicks.length;
-        document.getElementById('stat-complete').textContent = completeToday;
-        document.getElementById('stat-deliveries').textContent = goodsToday;
-      } catch (e) { vit.handleError(e, false); }
-    };
-
-    const renderInventory = (docs) => {
-      const tbody = document.querySelector('#inventory-table tbody');
-      const term = document.getElementById('inventory-search').value.toLowerCase();
-      tbody.innerHTML = '';
-      docs.filter(doc => {
-        const d = doc.data();
-        return !term || d.name?.toLowerCase().includes(term) || doc.id.toLowerCase().includes(term);
-      }).forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${d.name || ''}</td><td>${doc.id}</td><td>${d.qty || 0}</td><td>${d.location || ''}</td><td><button class="vit-button secondary" data-sku="${doc.id}">Edit</button></td>`;
-        tbody.appendChild(tr);
-      });
-      tbody.querySelectorAll('button').forEach(btn => btn.onclick = () => openItemModal(btn.dataset.sku));
-    };
-
-    let inventoryUnsub = null;
-    const loadInventory = () => {
-      inventoryUnsub?.();
-      inventoryUnsub = inventoryRef.onSnapshot((snap) => renderInventory(snap.docs));
-    };
-
-    const openItemModal = (sku = '') => {
-      const modal = document.getElementById('modal-container');
-      const dataPromise = sku ? inventoryRef.doc(sku).get() : Promise.resolve({ exists: false });
-      dataPromise.then(doc => {
-        const data = doc.exists ? doc.data() : {};
-        modal.innerHTML = `
-          <div class="vit-modal-backdrop">
-            <div class="vit-modal">
-              <h3>${sku ? 'Edit' : 'Add'} Item</h3>
-              <div class="vit-form-row" style="margin-top:10px;">
-                <input class="vit-input" id="modal-name" placeholder="Name" value="${data.name || ''}">
-                <input class="vit-input" id="modal-sku" placeholder="SKU" value="${sku || ''}" ${sku ? 'disabled' : ''}>
-                <input class="vit-input" id="modal-qty" type="number" placeholder="Quantity" value="${data.qty || 0}">
-                <input class="vit-input" id="modal-location" placeholder="Location" value="${data.location || ''}">
-              </div>
-              <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
-                <button class="vit-button secondary" id="modal-close">Cancel</button>
-                <button class="vit-button" id="modal-save">Save</button>
-              </div>
-            </div>
-          </div>`;
-        qs('#modal-close').onclick = () => modal.innerHTML = '';
-        qs('#modal-save').onclick = async () => {
-          const payload = {
-            name: qs('#modal-name').value,
-            qty: Number(qs('#modal-qty').value || 0),
-            location: qs('#modal-location').value,
-          };
-          const docId = sku || vit.sanitizeInput(qs('#modal-sku').value);
-          if (!docId) return vitAlert('SKU required', 'warning');
-          try {
-            vitLoader(true);
-            await inventoryRef.doc(docId).set(payload, { merge: true });
-            vitToast('Saved');
-            modal.innerHTML = '';
-          } catch (e) { vit.handleError(e); }
-          finally { vitLoader(false); }
-        };
-      });
-    };
-
-    const loadGoods = () => {
-      goodsRef.orderBy('date', 'desc').limit(25).onSnapshot((snap) => {
-        const tbody = document.querySelector('#goods-table tbody');
-        tbody.innerHTML = '';
-        snap.forEach(doc => {
-          const d = doc.data();
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${d.reference || ''}</td><td>${d.item || ''}</td><td>${d.qty || 0}</td><td>${d.date || ''}</td>`;
-          tbody.appendChild(tr);
-        });
-      });
-    };
-
-    const openGoodsModal = () => {
-      const modal = document.getElementById('modal-container');
-      modal.innerHTML = `
-        <div class="vit-modal-backdrop">
-          <div class="vit-modal">
-            <h3>Add Delivery</h3>
-            <div class="vit-form-row" style="margin-top:10px;">
-              <input class="vit-input" id="g-item" placeholder="Item">
-              <input class="vit-input" id="g-qty" type="number" placeholder="Quantity">
-              <input class="vit-input" id="g-ref" placeholder="Reference">
-              <input class="vit-input" id="g-date" type="date">
-            </div>
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
-              <button class="vit-button secondary" id="g-cancel">Cancel</button>
-              <button class="vit-button" id="g-save">Save</button>
-            </div>
-          </div>
-        </div>`;
-      qs('#g-cancel').onclick = () => modal.innerHTML = '';
-      qs('#g-save').onclick = async () => {
-        const payload = {
-          item: qs('#g-item').value,
-          qty: Number(qs('#g-qty').value || 0),
-          reference: qs('#g-ref').value,
-          date: qs('#g-date').value || new Date().toISOString().slice(0,10),
-        };
-        try {
-          vitLoader(true);
-          await goodsRef.add(payload);
-          if (payload.item) {
-            await inventoryRef.doc(payload.item).set({ qty: firebase.firestore.FieldValue.increment(payload.qty || 0) }, { merge: true });
+    function renderNav() {
+      const links = [];
+      const addLink = (label, view, action) => {
+        const btn = document.createElement("button");
+        btn.className = "vit-button nav-btn";
+        btn.textContent = label;
+        if (view) btn.dataset.view = view;
+        btn.addEventListener("click", () => {
+          if (action) {
+            action();
+          } else {
+            showView(view);
           }
-          modal.innerHTML = '';
-          vitToast('Delivery saved');
-        } catch (e) { vit.handleError(e); }
-        finally { vitLoader(false); }
+        });
+        links.push(btn);
       };
-    };
 
-    const loadPickManagement = () => {
-      picksRef.orderBy('dueDate', 'asc').onSnapshot((snap) => {
-        const list = document.getElementById('pick-list');
-        list.innerHTML = '';
-        snap.forEach(doc => {
-          const d = doc.data();
-          const card = document.createElement('div');
-          card.className = 'vit-card';
-          card.innerHTML = `<h3>${doc.id}</h3><p>${d.customer || ''}</p><p style="color:var(--muted);">Status: ${d.status || 'pending'}</p><div class="vit-progress"><div class="fill" style="width:${d.items ? Math.min(100, (d.items.filter(i => i.qtyPicked >= i.qtyNeeded).length / d.items.length) * 100) : 0}%;"></div></div><div style="display:flex; gap:8px; margin-top:10px;"><button class="vit-button secondary" data-id="${doc.id}" data-action="assign">Assign</button><button class="vit-button secondary" data-id="${doc.id}" data-action="complete">Mark Complete</button></div>`;
-          list.appendChild(card);
-        });
-        list.querySelectorAll('button').forEach(btn => btn.onclick = () => handlePickAction(btn.dataset.id, btn.dataset.action));
-      });
-    };
-
-    const handlePickAction = async (id, action) => {
-      if (action === 'assign') {
-        const assignee = prompt('Assign to user');
-        if (!assignee) return;
-        await picksRef.doc(id).set({ assignedTo: assignee, status: 'active' }, { merge: true });
-        vitToast('Assigned');
+      if (["admin", "manager"].includes(session.role)) {
+        addLink("Dashboard", "view-dashboard");
+        addLink("Inventory", "view-inventory");
+        addLink("Goods In", "view-goodsin");
+        addLink("Pick Management", "view-pick-mgmt");
+        addLink("My Picks", "view-mypicks");
+        addLink("Reports", "view-dashboard");
+        addLink("Drivers", null, () => window.location.href = "/TMS/driversapp.html");
+        addLink("Settings", "view-settings");
+      } else if (session.role === "picker") {
+        addLink("My Picks", "view-mypicks");
+        addLink("Settings", "view-settings");
       }
-      if (action === 'complete') {
-        await picksRef.doc(id).set({ status: 'complete', completedAt: new Date().toISOString() }, { merge: true });
-        vitToast('Pick completed');
-      }
-    };
+      addLink("Logout", null, handleLogout);
 
-    const loadMyPicks = () => {
-      picksRef.where('assignedTo', '==', session.user).onSnapshot((snap) => {
-        const list = document.getElementById('my-picks');
-        list.innerHTML = '';
-        snap.forEach(doc => {
-          const d = doc.data();
-          const done = d.items ? d.items.filter(i => i.qtyPicked >= i.qtyNeeded).length : 0;
-          const total = d.items ? d.items.length : 0;
-          const card = document.createElement('div');
-          card.className = 'vit-card';
-          card.innerHTML = `<h3>${doc.id}</h3><p>${d.customer || ''}</p><div class="vit-progress"><div class="fill" style="width:${total ? (done/total)*100 : 0}%;"></div></div><p style="color:var(--muted);">${done}/${total} items</p>`;
-          list.appendChild(card);
-        });
+      const container = document.getElementById("nav-links");
+      container.innerHTML = "";
+      links.forEach((btn, idx) => {
+        container.appendChild(btn);
+        if (idx === links.length - 2 && ["admin", "manager"].includes(session.role)) {
+          const divider = document.createElement("div");
+          divider.className = "nav-spacer";
+          container.appendChild(divider);
+        }
       });
-    };
+      const firstView = links.find((b) => b.dataset.view)?.dataset.view;
+      if (firstView) showView(firstView);
+    }
 
-    const createPickModal = () => {
-      const modal = document.getElementById('modal-container');
-      modal.innerHTML = `
-        <div class="vit-modal-backdrop">
-          <div class="vit-modal">
-            <h3>Create Pick</h3>
-            <div class="vit-form-row" style="margin-top:10px;">
-              <input class="vit-input" id="p-customer" placeholder="Customer">
-              <input class="vit-input" id="p-address" placeholder="Address">
-              <input class="vit-input" id="p-due" type="date">
+    function renderInventory() {
+      const body = ui.inventoryBody;
+      const term = state.searchTerm.toLowerCase();
+      const rows = state.inventory
+        .filter((item) => !term || item.name?.toLowerCase().includes(term) || item.sku?.toLowerCase().includes(term))
+        .map((item) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${window.vit.sanitizeInput(item.name || "-")}</td>
+            <td>${window.vit.sanitizeInput(item.sku || "-")}</td>
+            <td>${item.qty ?? 0}</td>
+            <td>${window.vit.sanitizeInput(item.location || "-")}</td>
+            <td><button class="vit-button ghost" data-sku="${window.vit.sanitizeInput(item.sku || "")}">Edit</button></td>
+          `;
+          tr.querySelector("button").addEventListener("click", () => openItemModal(item));
+          return tr;
+        });
+
+      body.innerHTML = "";
+      if (rows.length === 0) {
+        const empty = document.createElement("tr");
+        empty.innerHTML = `<td colspan="5" class="muted-text">No items found</td>`;
+        body.appendChild(empty);
+      } else {
+        rows.forEach((row) => body.appendChild(row));
+      }
+    }
+
+    function renderGoodsIn() {
+      const body = ui.goodsBody;
+      if (!state.goodsLogs.length) {
+        body.innerHTML = `<tr><td colspan="6" class="muted-text">No entries yet</td></tr>`;
+        return;
+      }
+      body.innerHTML = "";
+      state.goodsLogs.forEach((entry) => {
+        const date = entry.date ? new Date(entry.date).toLocaleDateString() : "-";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${date}</td>
+          <td>${window.vit.sanitizeInput(entry.item || "-")}</td>
+          <td>${window.vit.sanitizeInput(entry.sku || "-")}</td>
+          <td>${entry.qty ?? 0}</td>
+          <td>${window.vit.sanitizeInput(entry.reference || "-")}</td>
+          <td>${window.vit.sanitizeInput(entry.notes || "-")}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    function renderPicks() {
+      const list = ui.pickList;
+      list.innerHTML = "";
+      const items = state.picks.filter((p) => p.status !== "completed");
+      if (!items.length) {
+        list.innerHTML = '<div class="vit-card">No active picks</div>';
+        return;
+      }
+      items.forEach((pick) => {
+        const card = document.createElement("div");
+        card.className = "vit-card";
+        card.style.display = "grid";
+        card.style.gap = "8px";
+        const due = pick.dueDate ? new Date(pick.dueDate).toLocaleDateString() : "-";
+        card.innerHTML = `
+          <div class="section-head">
+            <div>
+              <p class="subtle">${window.vit.sanitizeInput(pick.customer || "Customer")}</p>
+              <h4>${window.vit.sanitizeInput(pick.address || "- ")}</h4>
             </div>
-            <textarea class="vit-input" id="p-items" placeholder="Items (one per line: name|qty)" style="margin-top:10px; min-height:100px;"></textarea>
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
-              <button class="vit-button secondary" id="p-cancel">Cancel</button>
-              <button class="vit-button" id="p-save">Create</button>
-            </div>
+            <span class="vit-badge success">${window.vit.sanitizeInput(pick.status || "active")}</span>
           </div>
-        </div>`;
-      qs('#p-cancel').onclick = () => modal.innerHTML = '';
-      qs('#p-save').onclick = async () => {
-        const items = qs('#p-items').value.split('\n').filter(Boolean).map(line => {
-          const [name, qty] = line.split('|');
-          return { name: name?.trim(), qtyNeeded: Number(qty || 0), qtyPicked: 0 };
+          <p class="muted-text">Due: ${due} · Pallets: ${pick.palletCount ?? 0}</p>
+          <p class="muted-text">Assigned: ${window.vit.sanitizeInput(pick.assignedTo || "Unassigned")}</p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="vit-button ghost" data-action="assign">Assign</button>
+            <button class="vit-button" data-action="complete">Mark Complete</button>
+          </div>
+        `;
+        card.querySelector("[data-action='assign']").addEventListener("click", () => promptAssign(pick));
+        card.querySelector("[data-action='complete']").addEventListener("click", () => updatePickStatus(pick, "completed"));
+        list.appendChild(card);
+      });
+    }
+
+    function renderMyPicks() {
+      const list = ui.myPickList;
+      list.innerHTML = "";
+      const mine = state.picks.filter((p) => p.assignedTo === session.user);
+      if (!mine.length) {
+        list.innerHTML = '<div class="vit-card">No picks assigned to you</div>';
+        return;
+      }
+      mine.forEach((pick) => {
+        const card = document.createElement("div");
+        card.className = "vit-card";
+        card.style.display = "grid";
+        card.style.gap = "8px";
+        const due = pick.dueDate ? new Date(pick.dueDate).toLocaleDateString() : "-";
+        card.innerHTML = `
+          <div class="section-head">
+            <div>
+              <p class="subtle">${window.vit.sanitizeInput(pick.customer || "Customer")}</p>
+              <h4>${window.vit.sanitizeInput(pick.address || "- ")}</h4>
+            </div>
+            <span class="vit-badge success">${window.vit.sanitizeInput(pick.status || "active")}</span>
+          </div>
+          <p class="muted-text">Due: ${due} · Pallets: ${pick.palletCount ?? 0}</p>
+          <div class="list">
+            ${(pick.items || []).map((i) => `<div class="pill">${window.vit.sanitizeInput(i.name || "Item")}: ${i.qty ?? 0}</div>`).join("")}
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="vit-button" data-action="complete">Mark Complete</button>
+          </div>
+        `;
+        card.querySelector("[data-action='complete']").addEventListener("click", () => updatePickStatus(pick, "completed"));
+        list.appendChild(card);
+      });
+    }
+
+    function updateDashboard() {
+      const totalSkus = state.inventory.length;
+      const totalQty = state.inventory.reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
+      const activePicks = state.picks.filter((p) => p.status !== "completed").length;
+      const today = new Date().toDateString();
+      const completedToday = state.picks.filter((p) => p.status === "completed" && p.completedAt && new Date(p.completedAt).toDateString() === today).length;
+      const incomingToday = state.goodsLogs.filter((g) => g.date && new Date(g.date).toDateString() === today).length;
+
+      document.getElementById("metric-skus").textContent = totalSkus;
+      document.getElementById("metric-qty").textContent = totalQty;
+      document.getElementById("metric-active-picks").textContent = activePicks;
+      document.getElementById("metric-completed-today").textContent = completedToday;
+      document.getElementById("metric-incoming").textContent = incomingToday;
+    }
+
+    function openItemModal(item) {
+      ui.itemModal.classList.remove("hidden");
+      document.getElementById("item-modal-title").textContent = item ? "Edit Item" : "Add Item";
+      document.getElementById("modal-item-name").value = item?.name || "";
+      document.getElementById("modal-item-sku").value = item?.sku || "";
+      document.getElementById("modal-item-qty").value = item?.qty ?? "";
+      document.getElementById("modal-item-location").value = item?.location || "";
+      document.getElementById("save-item").dataset.sku = item?.sku || "";
+    }
+
+    function closeItemModal() {
+      ui.itemModal.classList.add("hidden");
+    }
+
+    async function saveItem() {
+      const name = document.getElementById("modal-item-name").value.trim();
+      const sku = document.getElementById("modal-item-sku").value.trim();
+      const qty = Number(document.getElementById("modal-item-qty").value || 0);
+      const location = document.getElementById("modal-item-location").value.trim();
+      if (!sku || !name) {
+        window.vit.vitAlert("Name and SKU required", "warning");
+        return;
+      }
+      window.vit.vitLoader(true);
+      try {
+        await setDoc(doc(refs.inventory(session.company, session.warehouse), sku), {
+          name,
+          sku,
+          qty,
+          location,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+        window.vit.vitAlert("Item saved", "success");
+        closeItemModal();
+      } catch (error) {
+        window.vit.handleError(error);
+      } finally {
+        window.vit.vitLoader(false);
+      }
+    }
+
+    async function addGoodsIn() {
+      const item = document.getElementById("goods-item").value.trim();
+      const sku = document.getElementById("goods-sku").value.trim();
+      const qty = Number(document.getElementById("goods-qty").value || 0);
+      const reference = document.getElementById("goods-ref").value.trim();
+      const date = document.getElementById("goods-date").value || new Date().toISOString();
+      const notes = document.getElementById("goods-notes").value.trim();
+      if (!item || !sku || !qty) {
+        window.vit.vitAlert("Item, SKU, and quantity are required", "warning");
+        return;
+      }
+      window.vit.vitLoader(true);
+      try {
+        await addDoc(refs.goodsLogs(session.company, session.warehouse), {
+          item,
+          sku,
+          qty,
+          reference,
+          date,
+          notes,
+          createdAt: serverTimestamp(),
         });
-        try {
-          vitLoader(true);
-          await picksRef.add({
-            customer: qs('#p-customer').value,
-            address: qs('#p-address').value,
-            dueDate: qs('#p-due').value,
-            status: 'pending',
-            items,
-          });
-          modal.innerHTML = '';
-          vitToast('Pick created');
-        } catch (e) { vit.handleError(e); }
-        finally { vitLoader(false); }
+        await setDoc(doc(refs.inventory(session.company, session.warehouse), sku), {
+          name: item,
+          sku,
+          location: "Receiving",
+        }, { merge: true });
+        await updateDoc(doc(refs.inventory(session.company, session.warehouse), sku), {
+          qty: increment(qty)
+        });
+        window.vit.vitAlert("Goods in recorded", "success");
+        ["goods-item", "goods-sku", "goods-qty", "goods-ref", "goods-notes"].forEach((id) => {
+          const input = document.getElementById(id);
+          if (input) input.value = "";
+        });
+      } catch (error) {
+        window.vit.handleError(error);
+      } finally {
+        window.vit.vitLoader(false);
+      }
+    }
+
+    function parseItems(text) {
+      return text
+        .split("\n")
+        .map((line) => line.split("|").map((p) => p.trim()))
+        .filter((parts) => parts[0])
+        .map((parts) => ({ name: parts[0], qty: Number(parts[1]) || 0 }));
+    }
+
+    async function savePick() {
+      const payload = {
+        customer: document.getElementById("pick-customer").value.trim(),
+        dueDate: document.getElementById("pick-due").value,
+        address: document.getElementById("pick-address").value.trim(),
+        palletCount: Number(document.getElementById("pick-pallets").value || 0),
+        assignedTo: document.getElementById("pick-assignee").value.trim(),
+        status: document.getElementById("pick-status").value || "active",
+        items: parseItems(document.getElementById("pick-items").value),
+        createdAt: serverTimestamp(),
       };
-    };
+      if (!payload.customer) {
+        window.vit.vitAlert("Customer is required", "warning");
+        return;
+      }
+      window.vit.vitLoader(true);
+      try {
+        await addDoc(refs.picks(session.company, session.warehouse), payload);
+        window.vit.vitAlert("Pick created", "success");
+        closePickModal();
+      } catch (error) {
+        window.vit.handleError(error);
+      } finally {
+        window.vit.vitLoader(false);
+      }
+    }
 
-    document.getElementById('btn-add-item').onclick = () => openItemModal();
-    document.getElementById('inventory-search').oninput = () => inventoryRef.get().then(snap => renderInventory(snap.docs));
-    document.getElementById('btn-add-goods').onclick = openGoodsModal;
-    document.getElementById('btn-create-pick').onclick = createPickModal;
+    async function updatePickStatus(pick, status) {
+      if (!pick.id) return;
+      window.vit.vitLoader(true);
+      try {
+        await updateDoc(doc(refs.picks(session.company, session.warehouse), pick.id), {
+          status,
+          completedAt: status === "completed" ? new Date().toISOString() : null,
+        });
+        window.vit.vitAlert("Pick updated", "success");
+      } catch (error) {
+        window.vit.handleError(error);
+      } finally {
+        window.vit.vitLoader(false);
+      }
+    }
 
-    buildSidebar();
-    showView(session.role === 'picker' ? 'mypicks' : 'dashboard', session.role === 'picker' ? 'My Picks' : 'Dashboard');
-    loadDashboard();
-    loadInventory();
-    loadGoods();
-    loadPickManagement();
-    loadMyPicks();
+    async function promptAssign(pick) {
+      const assignee = prompt("Assign to (username)", pick.assignedTo || "");
+      if (assignee === null) return;
+      window.vit.vitLoader(true);
+      try {
+        await updateDoc(doc(refs.picks(session.company, session.warehouse), pick.id), {
+          assignedTo: assignee,
+          status: pick.status || "active",
+        });
+        window.vit.vitAlert("Pick assigned", "success");
+      } catch (error) {
+        window.vit.handleError(error);
+      } finally {
+        window.vit.vitLoader(false);
+      }
+    }
+
+    function subscribeData() {
+      onSnapshot(refs.inventory(session.company, session.warehouse), (snap) => {
+        state.inventory = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        renderInventory();
+        updateDashboard();
+      });
+
+      const goodsQuery = query(refs.goodsLogs(session.company, session.warehouse), orderBy("createdAt", "desc"));
+      onSnapshot(goodsQuery, (snap) => {
+        state.goodsLogs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        renderGoodsIn();
+        updateDashboard();
+      });
+
+      onSnapshot(refs.picks(session.company, session.warehouse), (snap) => {
+        state.picks = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        renderPicks();
+        renderMyPicks();
+        updateDashboard();
+      });
+    }
+
+    function openPickModal() {
+      ui.pickModal.classList.remove("hidden");
+      document.querySelectorAll("#pick-modal input, #pick-modal textarea").forEach((el) => el.value = "");
+    }
+
+    function closePickModal() {
+      ui.pickModal.classList.add("hidden");
+    }
+
+    function handleLogout() {
+      window.vit.clearSession();
+      window.location.href = "/index.html";
+    }
+
+    function wireEvents() {
+      ui.search.addEventListener("input", (e) => {
+        state.searchTerm = e.target.value;
+        renderInventory();
+      });
+      document.getElementById("open-add-item").addEventListener("click", () => openItemModal());
+      document.getElementById("close-item-modal").addEventListener("click", closeItemModal);
+      document.getElementById("save-item").addEventListener("click", saveItem);
+      document.getElementById("submit-goods").addEventListener("click", addGoodsIn);
+      document.getElementById("create-pick").addEventListener("click", openPickModal);
+      document.getElementById("close-pick-modal").addEventListener("click", closePickModal);
+      document.getElementById("save-pick").addEventListener("click", savePick);
+      document.getElementById("logout-btn").addEventListener("click", handleLogout);
+      ui.refresh.addEventListener("click", updateDashboard);
+    }
+
+    updatePills();
+    renderNav();
+    wireEvents();
+    subscribeData();
   </script>
 </body>
 </html>

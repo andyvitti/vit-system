@@ -6,334 +6,784 @@
   <title>VIT Super Admin Portal</title>
   <link rel="stylesheet" href="/assets/vit.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="/assets/firebase-config.js"></script>
   <script src="/assets/vit.js"></script>
 </head>
-<body>
+<body class="vit-shell">
   <div class="vit-layout">
-    <aside class="vit-sidebar" id="sidebar">
-      <div class="brand"><img src="/assets/vit-logo.png" alt="VIT" style="width:42px;"> <strong>VIT Portal</strong></div>
-      <button class="nav-button active" data-view="dashboard">Home</button>
-      <button class="nav-button" data-view="companies">Companies</button>
-      <button class="nav-button" data-view="warehouses">Warehouses</button>
-      <button class="nav-button" data-view="users">Users</button>
-      <button class="nav-button" data-view="plans">Plans</button>
-      <button class="nav-button" data-view="features">Feature Toggles</button>
-      <button class="nav-button" data-view="metrics">System Metrics</button>
-      <button class="nav-button" data-view="logs">Audit Logs</button>
-      <button class="nav-button" data-view="settings">Global Settings</button>
-      <button class="nav-button" id="logout">Logout</button>
+    <aside class="vit-sidebar">
+      <div class="sidebar-header">
+        <div class="logo">VIT Admin</div>
+        <div class="subtext">Global Control</div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-link active" data-view="dashboard">Home</button>
+        <button class="nav-link" data-view="companies">Companies</button>
+        <button class="nav-link" data-view="warehouses">Warehouses</button>
+        <button class="nav-link" data-view="users">Users</button>
+        <button class="nav-link" data-view="plans">Plans</button>
+        <button class="nav-link" data-view="features">Feature Toggles</button>
+        <button class="nav-link" data-view="metrics">System Metrics</button>
+        <button class="nav-link" data-view="logs">Audit Logs</button>
+        <button class="nav-link" data-view="settings">Global Settings</button>
+        <button class="nav-link danger" id="btn-logout">Logout</button>
+      </nav>
     </aside>
-    <div>
+
+    <div class="vit-main">
       <header class="vit-topbar">
         <div>
-          <div class="vit-breadcrumbs">VIT Portal <span>Dashboard</span></div>
-          <h2 id="view-title">Dashboard</h2>
+          <div class="eyebrow">Super Admin</div>
+          <h2 id="section-title">Dashboard</h2>
         </div>
-        <div class="meta">
-          <div class="vit-chip" id="admin-email"></div>
+        <div class="user-meta">
+          <div class="user-email" id="admin-email"></div>
+          <div class="badge">Global</div>
         </div>
       </header>
-      <main style="padding:20px;">
-        <section id="view-dashboard" class="view">
-          <div class="vit-grid">
-            <div class="vit-card"><p>Total Companies</p><h2 id="kpi-companies">-</h2></div>
-            <div class="vit-card"><p>Total Warehouses</p><h2 id="kpi-warehouses">-</h2></div>
-            <div class="vit-card"><p>Total Users</p><h2 id="kpi-users">-</h2></div>
-            <div class="vit-card"><p>Active Plans</p><h2 id="kpi-plans">-</h2></div>
-            <div class="vit-card"><p>Picks Today</p><h2 id="kpi-picks">-</h2></div>
-            <div class="vit-card"><p>Deliveries Today</p><h2 id="kpi-deliveries">-</h2></div>
+
+      <main class="vit-content">
+        <section id="view-dashboard" class="view active">
+          <div class="grid kpi-grid">
+            <div class="vit-card" id="kpi-companies">
+              <div class="kpi-title">Total Companies</div>
+              <div class="kpi-value" id="total-companies">--</div>
+            </div>
+            <div class="vit-card" id="kpi-warehouses">
+              <div class="kpi-title">Total Warehouses</div>
+              <div class="kpi-value" id="total-warehouses">--</div>
+            </div>
+            <div class="vit-card" id="kpi-users">
+              <div class="kpi-title">Total Users</div>
+              <div class="kpi-value" id="total-users">--</div>
+            </div>
+            <div class="vit-card" id="kpi-plans">
+              <div class="kpi-title">Active Plans</div>
+              <div class="kpi-sub">Starter / Pro / Enterprise</div>
+              <div class="kpi-value" id="plan-breakdown">--</div>
+            </div>
+            <div class="vit-card" id="kpi-picks">
+              <div class="kpi-title">Picks Today</div>
+              <div class="kpi-value" id="picks-today">--</div>
+            </div>
+            <div class="vit-card" id="kpi-deliveries">
+              <div class="kpi-title">Deliveries Today</div>
+              <div class="kpi-value" id="deliveries-today">--</div>
+            </div>
           </div>
-          <div class="vit-grid" style="margin-top:16px;">
-            <div class="vit-card"><h3>Monthly Companies Created</h3><div class="vit-placeholder" style="height:180px;">Chart placeholder</div></div>
-            <div class="vit-card"><h3>Total Picks Per Day</h3><div class="vit-placeholder" style="height:180px;">Bar chart placeholder</div></div>
-            <div class="vit-card"><h3>Activity Feed</h3><ul id="activity" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;"></ul></div>
+
+          <div class="grid charts-grid">
+            <div class="vit-card chart-card">
+              <div class="card-header">
+                <h3>Monthly Companies Created</h3>
+                <span class="pill">Placeholder</span>
+              </div>
+              <div class="chart-placeholder">Line chart coming soon</div>
+            </div>
+            <div class="vit-card chart-card">
+              <div class="card-header">
+                <h3>Total Picks Per Day</h3>
+                <span class="pill">Placeholder</span>
+              </div>
+              <div class="chart-placeholder">Bar chart coming soon</div>
+            </div>
+            <div class="vit-card activity-card">
+              <div class="card-header">
+                <h3>Recent Audit Activity</h3>
+                <button class="vit-button ghost" id="refresh-activity">Refresh</button>
+              </div>
+              <ul class="activity-feed" id="activity-feed"></ul>
+            </div>
           </div>
         </section>
 
-        <section id="view-companies" class="view" style="display:none;">
-          <div class="vit-section-title">
-            <div><h3>Companies</h3><p style="color:var(--muted);">Manage tenants</p></div>
-            <button class="vit-button" id="create-company">Create New Company</button>
+        <section id="view-companies" class="view">
+          <div class="section-header">
+            <h3>Company Management</h3>
+            <div class="actions">
+              <input class="vit-input" id="new-company-id" placeholder="Company ID" />
+              <input class="vit-input" id="new-company-name" placeholder="Company Name" />
+              <select class="vit-input" id="new-company-plan">
+                <option value="Starter">Starter</option>
+                <option value="Pro">Pro</option>
+                <option value="Enterprise">Enterprise</option>
+                <option value="Demo">Demo</option>
+              </select>
+              <button class="vit-button" id="btn-create-company">Create New Company</button>
+            </div>
           </div>
-          <div class="vit-card-list" id="company-list"></div>
-        </section>
-
-        <section id="view-warehouses" class="view" style="display:none;">
-          <div class="vit-section-title"><h3>Warehouses</h3></div>
-          <div class="vit-card-list" id="warehouse-tree"></div>
-        </section>
-
-        <section id="view-users" class="view" style="display:none;">
-          <div class="vit-section-title"><h3>Global User Search</h3><button class="vit-button secondary" id="search-users">Refresh</button></div>
-          <div id="global-users"></div>
-        </section>
-
-        <section id="view-plans" class="view" style="display:none;">
-          <div class="vit-section-title"><h3>Plan Management</h3></div>
-          <div id="plans-wrap"></div>
-        </section>
-
-        <section id="view-features" class="view" style="display:none;">
-          <div class="vit-section-title"><h3>Feature Toggles</h3></div>
-          <div class="vit-card" id="features-form"></div>
-        </section>
-
-        <section id="view-metrics" class="view" style="display:none;">
-          <div class="vit-grid">
-            <div class="vit-card"><h3>Total Reads Today</h3><div class="vit-placeholder" style="height:120px;">Metric placeholder</div></div>
-            <div class="vit-card"><h3>Total Writes Today</h3><div class="vit-placeholder" style="height:120px;">Metric placeholder</div></div>
-            <div class="vit-card"><h3>Active Users</h3><div class="vit-placeholder" style="height:120px;">Graph placeholder</div></div>
-            <div class="vit-card"><h3>DB Load</h3><div class="vit-placeholder" style="height:120px;">Gauge placeholder</div></div>
-          </div>
-        </section>
-
-        <section id="view-logs" class="view" style="display:none;">
-          <div class="vit-section-title"><h3>Audit Logs</h3></div>
-          <div class="vit-card" id="audit-list"></div>
-        </section>
-
-        <section id="view-settings" class="view" style="display:none;">
           <div class="vit-card">
+            <div class="table-responsive">
+              <table class="vit-table" id="companies-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>ID</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Warehouses</th>
+                    <th>Users</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-warehouses" class="view">
+          <div class="section-header">
+            <h3>Warehouse Explorer</h3>
+            <div class="actions">
+              <select class="vit-input" id="warehouse-company-select"></select>
+              <button class="vit-button" id="btn-load-warehouses">Load</button>
+            </div>
+          </div>
+          <div class="grid" id="warehouse-grid"></div>
+        </section>
+
+        <section id="view-users" class="view">
+          <div class="section-header">
+            <h3>Global User Search</h3>
+            <div class="actions">
+              <input class="vit-input" id="user-search" placeholder="Search username" />
+              <button class="vit-button" id="btn-search-users">Search</button>
+            </div>
+          </div>
+          <div class="vit-card">
+            <div class="table-responsive">
+              <table class="vit-table" id="users-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Company</th>
+                    <th>Warehouse</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-plans" class="view">
+          <div class="section-header">
+            <h3>Plan & Tier Management</h3>
+            <button class="vit-button ghost" id="refresh-plans">Refresh Plans</button>
+          </div>
+          <div class="vit-card" id="plans-container"></div>
+        </section>
+
+        <section id="view-features" class="view">
+          <div class="section-header">
+            <h3>Feature Toggles</h3>
+            <button class="vit-button ghost" id="refresh-features">Refresh</button>
+          </div>
+          <div class="vit-card toggles">
+            <label><input type="checkbox" id="feat-driver"> Driver App Enabled</label>
+            <label><input type="checkbox" id="feat-picker"> Picker App Enabled</label>
+            <label><input type="checkbox" id="feat-hr"> HR Module Enabled</label>
+            <label><input type="checkbox" id="feat-tms"> TMS Enabled</label>
+            <label><input type="checkbox" id="feat-import"> Import API Enabled</label>
+            <label><input type="checkbox" id="feat-audit"> Audit Logging Enabled</label>
+            <button class="vit-button" id="btn-save-features">Save Feature Toggles</button>
+          </div>
+        </section>
+
+        <section id="view-metrics" class="view">
+          <div class="section-header">
+            <h3>System Metrics</h3>
+            <button class="vit-button ghost" id="refresh-metrics">Refresh</button>
+          </div>
+          <div class="grid metrics-grid">
+            <div class="vit-card metric-card"><div class="metric-title">Total Reads Today</div><div class="metric-value" id="metric-reads">--</div></div>
+            <div class="vit-card metric-card"><div class="metric-title">Total Writes Today</div><div class="metric-value" id="metric-writes">--</div></div>
+            <div class="vit-card metric-card"><div class="metric-title">Active Users</div><div class="chart-placeholder">Graph placeholder</div></div>
+            <div class="vit-card metric-card"><div class="metric-title">Average Pick Time</div><div class="metric-value">Pending</div></div>
+            <div class="vit-card metric-card"><div class="metric-title">DB Load</div><div class="chart-placeholder">Chart placeholder</div></div>
+          </div>
+        </section>
+
+        <section id="view-logs" class="view">
+          <div class="section-header">
+            <h3>Audit Logs</h3>
+            <button class="vit-button ghost" id="refresh-logs">Refresh</button>
+          </div>
+          <div class="vit-card">
+            <ul class="activity-feed" id="logs-list"></ul>
+          </div>
+        </section>
+
+        <section id="view-settings" class="view">
+          <div class="section-header">
             <h3>Global Settings</h3>
-            <div class="vit-form-row" style="margin-top:10px;">
-              <input class="vit-input" id="s-plan" placeholder="Default plan">
-              <input class="vit-input" id="s-brand" placeholder="Branding name">
-              <input class="vit-input" id="s-logo" placeholder="Branding logo URL">
-              <input class="vit-input" id="s-email" placeholder="Email sender">
-              <textarea class="vit-input" id="s-template" placeholder="Email template" style="min-height:120px;"></textarea>
+          </div>
+          <div class="vit-card settings-card">
+            <div class="form-grid">
+              <label>Default Plan<input class="vit-input" id="setting-default-plan" placeholder="Starter" /></label>
+              <label>Branding Name<input class="vit-input" id="setting-brand-name" placeholder="VIT System" /></label>
+              <label>Branding Logo URL<input class="vit-input" id="setting-brand-logo" placeholder="https://..." /></label>
+              <label>Email Sender Address<input class="vit-input" id="setting-email-sender" placeholder="noreply@vit.com" /></label>
+              <label>Email Template Placeholders<textarea class="vit-input" id="setting-email-templates" rows="3"></textarea></label>
             </div>
-            <div style="display:flex; justify-content:flex-end; margin-top:12px;">
-              <button class="vit-button" id="save-settings">Save Settings</button>
-            </div>
+            <button class="vit-button" id="btn-save-settings">Save Settings</button>
           </div>
         </section>
       </main>
     </div>
   </div>
 
-  <div id="portal-modal"></div>
-
   <script>
-    const db = firebase.firestore();
-    const { qs, qsa, ce } = vit;
-    const adminEmail = localStorage.vitGlobalAdmin;
-    if (!adminEmail) window.location.href = '/VIT_PORTAL/vit-portal-login.html';
-    qs('#admin-email').textContent = adminEmail;
-    qs('#logout').onclick = () => { delete localStorage.vitGlobalAdmin; window.location.href = '/VIT_PORTAL/vit-portal-login.html'; };
+    const views = Array.from(document.querySelectorAll('.view'));
+    const navLinks = Array.from(document.querySelectorAll('.nav-link[data-view]'));
+    const sectionTitle = document.getElementById('section-title');
+    const adminEmailEl = document.getElementById('admin-email');
 
-    qsa('.nav-button[data-view]').forEach(btn => btn.onclick = () => showView(btn.dataset.view, btn.textContent));
+    let db;
+    let companiesCache = [];
 
-    const showView = (id, label) => {
-      document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-      qs(`#view-${id}`).style.display = 'block';
-      qs('#view-title').textContent = label;
-      qsa('.nav-button').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
-    };
-
-    const companyCollection = db.collection('companies');
-
-    const loadDashboard = async () => {
-      const companies = await companyCollection.get();
-      let warehouses = 0; let users = 0;
-      for (const doc of companies.docs) {
-        const wSnap = await companyCollection.doc(doc.id).collection('warehouses').get();
-        warehouses += wSnap.size;
-        for (const wDoc of wSnap.docs) {
-          const uSnap = await companyCollection.doc(doc.id).collection('warehouses').doc(wDoc.id).collection('users').get();
-          users += uSnap.size;
-        }
+    function ensureAuth() {
+      const adminEmail = localStorage.getItem('vitGlobalAdmin');
+      if (!adminEmail) {
+        window.location.href = '/VIT_PORTAL/vit-portal-login.html';
+        return null;
       }
-      qs('#kpi-companies').textContent = companies.size;
-      qs('#kpi-warehouses').textContent = warehouses;
-      qs('#kpi-users').textContent = users;
-      qs('#kpi-plans').textContent = companies.docs.filter(d => d.data().plan).length;
-      qs('#kpi-picks').textContent = '-';
-      qs('#kpi-deliveries').textContent = '-';
-    };
+      adminEmailEl.textContent = adminEmail;
+      return adminEmail;
+    }
 
-    const renderCompanies = async () => {
-      const snap = await companyCollection.get();
-      const list = qs('#company-list');
-      list.innerHTML = '';
-      snap.forEach(doc => {
-        const d = doc.data();
-        const card = ce('div');
-        card.className = 'vit-card';
-        card.innerHTML = `<h3>${d.name || doc.id}</h3><p style="color:var(--muted);">Plan: ${d.plan || 'n/a'}</p><p>Status: ${d.status || 'active'}</p><div style="display:flex; gap:8px; margin-top:8px;"><button class="vit-button secondary" data-id="${doc.id}" data-action="edit">Edit</button><button class="vit-button secondary" data-id="${doc.id}" data-action="delete">Delete</button></div>`;
-        list.appendChild(card);
-      });
-      qsa('#company-list button').forEach(btn => btn.onclick = () => companyAction(btn.dataset.id, btn.dataset.action));
-    };
+    function initFirebase() {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      db = firebase.firestore();
+    }
 
-    const companyAction = (id, action) => {
-      if (action === 'edit') openCompanyModal(id);
-      if (action === 'delete') vitConfirm('Delete company?', async () => { await companyCollection.doc(id).delete(); renderCompanies(); });
-    };
+    function showView(viewName) {
+      views.forEach((v) => v.classList.remove('active'));
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.add('active');
+      navLinks.forEach((btn) => btn.classList.toggle('active', btn.dataset.view === viewName));
+      sectionTitle.textContent = target ? target.querySelector('h3')?.textContent || 'Dashboard' : 'Dashboard';
+    }
 
-    const openCompanyModal = async (id = '') => {
-      const modal = qs('#portal-modal');
-      let data = {};
-      if (id) data = (await companyCollection.doc(id).get()).data() || {};
-      modal.innerHTML = `
-        <div class="vit-modal-backdrop">
-          <div class="vit-modal">
-            <h3>${id ? 'Edit' : 'Create'} Company</h3>
-            <div class="vit-form-row" style="margin-top:10px;">
-              <input class="vit-input" id="co-id" placeholder="Company ID" value="${id}" ${id ? 'disabled' : ''}>
-              <input class="vit-input" id="co-name" placeholder="Name" value="${data.name || ''}">
-              <input class="vit-input" id="co-plan" placeholder="Plan" value="${data.plan || ''}">
-              <input class="vit-input" id="co-status" placeholder="Status" value="${data.status || 'active'}">
-            </div>
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
-              <button class="vit-button secondary" id="co-cancel">Cancel</button>
-              <button class="vit-button" id="co-save">Save</button>
-            </div>
-          </div>
-        </div>`;
-      qs('#co-cancel').onclick = () => modal.innerHTML = '';
-      qs('#co-save').onclick = async () => {
-        const cid = id || vit.sanitizeInput(qs('#co-id').value);
-        if (!cid) return vitAlert('Company ID required', 'warning');
-        await companyCollection.doc(cid).set({
-          name: qs('#co-name').value,
-          plan: qs('#co-plan').value,
-          status: qs('#co-status').value || 'active',
-        }, { merge: true });
-        modal.innerHTML = '';
-        renderCompanies();
-      };
-    };
+    function logout() {
+      localStorage.removeItem('vitGlobalAdmin');
+      window.location.href = '/VIT_PORTAL/vit-portal-login.html';
+    }
 
-    qs('#create-company').onclick = () => openCompanyModal();
+    async function loadDashboard() {
+      vitLoader(true);
+      try {
+        const companiesSnap = await db.collection('companies').get();
+        companiesCache = companiesSnap.docs;
+        document.getElementById('total-companies').textContent = companiesSnap.size;
 
-    const renderWarehouses = async () => {
-      const list = qs('#warehouse-tree');
-      list.innerHTML = '';
-      const companies = await companyCollection.get();
-      for (const c of companies.docs) {
-        const wSnap = await companyCollection.doc(c.id).collection('warehouses').get();
-        wSnap.forEach(doc => {
-          const card = ce('div');
-          card.className = 'vit-card';
-          card.innerHTML = `<h3>${doc.id}</h3><p style="color:var(--muted);">${c.id}</p><p>Items: ${doc.data().inventoryCount || '-'}</p><p>Picks: ${doc.data().pickCount || '-'}</p><button class="vit-button secondary" onclick="window.location='/WMS/companyadmin.html'">Open Admin</button>`;
-          list.appendChild(card);
+        let totalWarehouses = 0;
+        let totalUsers = 0;
+        let picksToday = 0;
+        let deliveriesToday = 0;
+        const planCounts = { Starter: 0, Pro: 0, Enterprise: 0, Demo: 0 };
+        const today = new Date().toISOString().slice(0, 10);
+
+        for (const compDoc of companiesSnap.docs) {
+          const data = compDoc.data() || {};
+          if (planCounts[data.plan]) planCounts[data.plan]++;
+
+          const warehouses = await db.collection('companies').doc(compDoc.id).collection('warehouses').get();
+          totalWarehouses += warehouses.size;
+
+          for (const whDoc of warehouses.docs) {
+            const usersSnap = await whDoc.ref.collection('users').get();
+            totalUsers += usersSnap.size;
+
+            const picksSnap = await whDoc.ref.collection('picks').get();
+            picksToday += picksSnap.docs.filter((d) => (d.data().createdAt || '').startsWith?.(today)).length;
+
+            const goodsSnap = await whDoc.ref.collection('goodsinLogs').get();
+            deliveriesToday += goodsSnap.docs.filter((d) => (d.data().date || '').startsWith?.(today)).length;
+          }
+        }
+
+        document.getElementById('total-warehouses').textContent = totalWarehouses;
+        document.getElementById('total-users').textContent = totalUsers;
+        document.getElementById('picks-today').textContent = picksToday;
+        document.getElementById('deliveries-today').textContent = deliveriesToday;
+        document.getElementById('plan-breakdown').textContent = `S:${planCounts.Starter} / P:${planCounts.Pro} / E:${planCounts.Enterprise} / D:${planCounts.Demo}`;
+
+        await loadAuditFeed();
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to load dashboard', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    async function loadAuditFeed(limit = 10) {
+      const feed = document.getElementById('activity-feed');
+      feed.innerHTML = '<li class="muted">Loading...</li>';
+      try {
+        const logsSnap = await db.collection('auditLogs').orderBy('timestamp', 'desc').limit(limit).get();
+        feed.innerHTML = '';
+        logsSnap.forEach((doc) => {
+          const data = doc.data() || {};
+          const li = document.createElement('li');
+          li.innerHTML = `<div class="meta">${new Date(data.timestamp?.toDate?.() || Date.now()).toLocaleString()}</div><div class="title">${sanitizeInput(data.action || 'Action')}</div><div class="meta">${sanitizeInput(data.admin || '')} • ${data.companyId || '-'} ${data.warehouseId ? ' / ' + data.warehouseId : ''}</div>`;
+          feed.appendChild(li);
         });
-      }
-    };
-
-    const renderUsers = async () => {
-      const wrap = qs('#global-users');
-      wrap.innerHTML = '';
-      const table = ce('table'); table.className = 'vit-table';
-      table.innerHTML = '<thead><tr><th>User</th><th>Role</th><th>Company</th><th>Warehouse</th><th>Status</th></tr></thead>';
-      const tbody = ce('tbody');
-      const companies = await companyCollection.get();
-      for (const c of companies.docs) {
-        const wSnap = await companyCollection.doc(c.id).collection('warehouses').get();
-        for (const w of wSnap.docs) {
-          const uSnap = await companyCollection.doc(c.id).collection('warehouses').doc(w.id).collection('users').get();
-          uSnap.forEach(u => {
-            const d = u.data();
-            const tr = ce('tr');
-            tr.innerHTML = `<td>${u.id}</td><td>${d.role || ''}</td><td>${c.id}</td><td>${w.id}</td><td>${d.status || 'active'}</td>`;
-            tbody.appendChild(tr);
-          });
+        if (!feed.children.length) {
+          feed.innerHTML = '<li class="muted">No audit records.</li>';
         }
+      } catch (err) {
+        console.error(err);
+        feed.innerHTML = '<li class="muted">Failed to load audit logs</li>';
       }
-      table.appendChild(tbody);
-      wrap.appendChild(table);
-    };
+    }
 
-    qs('#search-users').onclick = renderUsers;
+    async function createCompany() {
+      const id = sanitizeInput(document.getElementById('new-company-id').value);
+      const name = sanitizeInput(document.getElementById('new-company-name').value);
+      const plan = document.getElementById('new-company-plan').value;
+      if (!id || !name) {
+        vitAlert('Enter company ID and name', 'warning');
+        return;
+      }
+      vitLoader(true);
+      try {
+        await db.collection('companies').doc(id).set({ name, plan, status: 'active', createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        vitAlert('Company created', 'success');
+        document.getElementById('new-company-id').value = '';
+        document.getElementById('new-company-name').value = '';
+        await loadCompanies();
+        await loadDashboard();
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to create company', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
 
-    const renderPlans = async () => {
-      const snap = await companyCollection.get();
-      const wrap = qs('#plans-wrap');
-      wrap.innerHTML = '';
-      snap.forEach(doc => {
-        const data = doc.data();
-        const card = ce('div');
-        card.className = 'vit-card';
-        card.innerHTML = `<h3>${data.name || doc.id}</h3><p>Plan: ${data.plan || 'Demo'}</p><div class="vit-form-row"><input class="vit-input" value="${data.plan || ''}" id="plan-${doc.id}"></div><div style="display:flex; justify-content:flex-end; margin-top:8px;"><button class="vit-button secondary" data-id="${doc.id}">Save</button></div>`;
-        wrap.appendChild(card);
+    async function loadCompanies() {
+      vitLoader(true);
+      try {
+        const tbody = document.querySelector('#companies-table tbody');
+        tbody.innerHTML = '<tr><td colspan="7">Loading...</td></tr>';
+        const snap = await db.collection('companies').get();
+        tbody.innerHTML = '';
+        companiesCache = snap.docs;
+        for (const doc of snap.docs) {
+          const data = doc.data() || {};
+          const warehousesSnap = await doc.ref.collection('warehouses').get();
+          let userCount = 0;
+          for (const wh of warehousesSnap.docs) {
+            const usersSnap = await wh.ref.collection('users').get();
+            userCount += usersSnap.size;
+          }
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${sanitizeInput(data.name || '-')}</td>
+            <td>${sanitizeInput(doc.id)}</td>
+            <td><select class="vit-input plan-select" data-id="${doc.id}">
+              <option ${data.plan === 'Starter' ? 'selected' : ''}>Starter</option>
+              <option ${data.plan === 'Pro' ? 'selected' : ''}>Pro</option>
+              <option ${data.plan === 'Enterprise' ? 'selected' : ''}>Enterprise</option>
+              <option ${data.plan === 'Demo' ? 'selected' : ''}>Demo</option>
+            </select></td>
+            <td><span class="pill ${data.status === 'suspended' ? 'danger' : 'success'}">${data.status || 'active'}</span></td>
+            <td>${warehousesSnap.size}</td>
+            <td>${userCount}</td>
+            <td class="actions">
+              <button class="vit-button ghost" data-action="open" data-id="${doc.id}">Open</button>
+              <button class="vit-button ghost" data-action="suspend" data-id="${doc.id}">${data.status === 'suspended' ? 'Unsuspend' : 'Suspend'}</button>
+              <button class="vit-button danger ghost" data-action="delete" data-id="${doc.id}">Delete</button>
+            </td>`;
+          tbody.appendChild(tr);
+        }
+        bindCompanyActions();
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to load companies', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    function bindCompanyActions() {
+      document.querySelectorAll('#companies-table select.plan-select').forEach((sel) => {
+        sel.onchange = () => updateCompanyPlan(sel.dataset.id, sel.value);
       });
-      wrap.querySelectorAll('button').forEach(btn => btn.onclick = async () => {
-        const val = qs(`#plan-${btn.dataset.id}`).value;
-        await companyCollection.doc(btn.dataset.id).set({ plan: val }, { merge: true });
-        vitToast('Plan updated');
+      document.querySelectorAll('#companies-table button').forEach((btn) => {
+        btn.onclick = () => {
+          const id = btn.dataset.id;
+          const action = btn.dataset.action;
+          if (action === 'open') {
+            loadCompanyWarehouses(id);
+            showView('warehouses');
+          }
+          if (action === 'suspend') toggleCompanyStatus(id);
+          if (action === 'delete') deleteCompany(id);
+        };
       });
-    };
+    }
 
-    const renderFeatures = async () => {
-      const ref = db.collection('config').doc('globalFeatures');
-      const snap = await ref.get();
-      const data = snap.data() || {};
-      const wrap = qs('#features-form');
-      wrap.innerHTML = '';
-      const toggles = ['driverAppEnabled','pickerAppEnabled','HRmoduleEnabled','TMSenabled','importAPIenabled','auditLoggingEnabled'];
-      toggles.forEach(key => {
-        const row = ce('div');
-        row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.marginBottom = '8px';
-        row.innerHTML = `<span>${key}</span><input type="checkbox" id="ft-${key}" ${data[key] ? 'checked' : ''}>`;
-        wrap.appendChild(row);
+    async function updateCompanyPlan(companyId, plan) {
+      try {
+        await db.collection('companies').doc(companyId).set({ plan }, { merge: true });
+        vitAlert('Plan updated', 'success');
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to update plan', 'error');
+      }
+    }
+
+    async function toggleCompanyStatus(companyId) {
+      const confirm = window.confirm('Toggle company status?');
+      if (!confirm) return;
+      try {
+        const ref = db.collection('companies').doc(companyId);
+        const snap = await ref.get();
+        const status = snap.data()?.status === 'suspended' ? 'active' : 'suspended';
+        await ref.set({ status }, { merge: true });
+        vitAlert(`Company ${status}`, 'success');
+        await loadCompanies();
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to toggle status', 'error');
+      }
+    }
+
+    async function deleteCompany(companyId) {
+      const confirm = window.confirm('Delete this company and all data?');
+      if (!confirm) return;
+      vitLoader(true);
+      try {
+        const companyRef = db.collection('companies').doc(companyId);
+        const warehouses = await companyRef.collection('warehouses').get();
+        for (const wh of warehouses.docs) {
+          const users = await wh.ref.collection('users').get();
+          users.forEach((u) => u.ref.delete());
+          const picks = await wh.ref.collection('picks').get();
+          picks.forEach((p) => p.ref.delete());
+          const inventory = await wh.ref.collection('inventory').get();
+          inventory.forEach((i) => i.ref.delete());
+          await wh.ref.delete();
+        }
+        await companyRef.delete();
+        vitAlert('Company deleted', 'success');
+        await loadCompanies();
+        await loadDashboard();
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to delete company', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    async function loadCompanyWarehouses(companyId) {
+      const select = document.getElementById('warehouse-company-select');
+      select.value = companyId;
+      await loadWarehouses();
+    }
+
+    async function populateCompanySelect() {
+      const select = document.getElementById('warehouse-company-select');
+      select.innerHTML = '';
+      companiesCache.forEach((doc) => {
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.textContent = `${doc.data()?.name || doc.id} (${doc.id})`;
+        select.appendChild(opt);
       });
-      const saveBtn = ce('button'); saveBtn.className = 'vit-button'; saveBtn.textContent = 'Save Toggles';
-      saveBtn.onclick = async () => {
-        const payload = {};
-        toggles.forEach(key => payload[key] = qs(`#ft-${key}`).checked);
-        await ref.set(payload, { merge: true });
-        vitToast('Feature toggles saved');
-      };
-      wrap.appendChild(saveBtn);
-    };
+    }
 
-    const renderAuditLogs = async () => {
-      const snap = await db.collection('auditLogs').orderBy('timestamp', 'desc').limit(10).get();
-      const wrap = qs('#audit-list');
-      wrap.innerHTML = '';
-      snap.forEach(doc => {
-        const d = doc.data();
-        const row = ce('div');
-        row.style.borderBottom = '1px solid var(--border)';
-        row.style.padding = '8px 0';
-        row.innerHTML = `<strong>${d.admin || ''}</strong> — ${d.action || ''} <span style="color:var(--muted);">${d.timestamp || ''}</span>`;
-        wrap.appendChild(row);
+    async function loadWarehouses() {
+      const companyId = document.getElementById('warehouse-company-select').value;
+      if (!companyId) return;
+      vitLoader(true);
+      const container = document.getElementById('warehouse-grid');
+      container.innerHTML = '';
+      try {
+        const whSnap = await db.collection('companies').doc(companyId).collection('warehouses').get();
+        if (!whSnap.size) {
+          container.innerHTML = '<div class="muted">No warehouses.</div>';
+        }
+        for (const wh of whSnap.docs) {
+          const data = wh.data() || {};
+          const itemsSnap = await wh.ref.collection('inventory').get();
+          const picksSnap = await wh.ref.collection('picks').get();
+          const usersSnap = await wh.ref.collection('users').get();
+          const card = document.createElement('div');
+          card.className = 'vit-card';
+          card.innerHTML = `
+            <div class="card-header"><h4>${sanitizeInput(data.name || wh.id)}</h4><span class="pill">${wh.id}</span></div>
+            <p>${sanitizeInput(data.location || 'No location')}</p>
+            <div class="kpi-row">
+              <div><div class="kpi-title">Items</div><div class="kpi-value">${itemsSnap.size}</div></div>
+              <div><div class="kpi-title">Picks</div><div class="kpi-value">${picksSnap.size}</div></div>
+              <div><div class="kpi-title">Users</div><div class="kpi-value">${usersSnap.size}</div></div>
+            </div>
+            <button class="vit-button ghost" data-company="${companyId}" data-warehouse="${wh.id}">Open in Admin</button>
+          `;
+          card.querySelector('button').onclick = () => {
+            localStorage.setItem('vitCompany', companyId);
+            localStorage.setItem('vitWarehouse', wh.id);
+            localStorage.setItem('vitRole', 'admin');
+            window.location.href = '/WMS/companyadmin.html';
+          };
+          container.appendChild(card);
+        }
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="muted">Failed to load warehouses</div>';
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    async function searchUsers() {
+      const query = sanitizeInput(document.getElementById('user-search').value).toLowerCase();
+      vitLoader(true);
+      try {
+        const tbody = document.querySelector('#users-table tbody');
+        tbody.innerHTML = '<tr><td colspan="6">Searching...</td></tr>';
+        tbody.innerHTML = '';
+        for (const comp of companiesCache) {
+          const whSnap = await comp.ref.collection('warehouses').get();
+          for (const wh of whSnap.docs) {
+            const usersSnap = await wh.ref.collection('users').get();
+            usersSnap.forEach((u) => {
+              const data = u.data() || {};
+              if (query && !u.id.toLowerCase().includes(query)) return;
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td>${sanitizeInput(u.id)}</td>
+                <td>${sanitizeInput(data.role || '-')}</td>
+                <td>${sanitizeInput(comp.id)}</td>
+                <td>${sanitizeInput(wh.id)}</td>
+                <td>${sanitizeInput(data.status || 'active')}</td>
+                <td class="actions">
+                  <button class="vit-button ghost" data-action="reset" data-company="${comp.id}" data-warehouse="${wh.id}" data-user="${u.id}">Reset Password</button>
+                  <button class="vit-button danger ghost" data-action="disable" data-company="${comp.id}" data-warehouse="${wh.id}" data-user="${u.id}">Disable</button>
+                </td>`;
+              tbody.appendChild(tr);
+            });
+          }
+        }
+        if (!document.querySelector('#users-table tbody').children.length) {
+          document.querySelector('#users-table tbody').innerHTML = '<tr><td colspan="6">No users found</td></tr>';
+        }
+        bindUserActions();
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to search users', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    function bindUserActions() {
+      document.querySelectorAll('#users-table button').forEach((btn) => {
+        btn.onclick = async () => {
+          const { company, warehouse, user } = btn.dataset;
+          if (btn.dataset.action === 'reset') {
+            const ok = window.confirm('Reset password to temp1234?');
+            if (!ok) return;
+            await db.collection('companies').doc(company).collection('warehouses').doc(warehouse).collection('users').doc(user).set({ password: 'temp1234' }, { merge: true });
+            vitAlert('Password reset', 'success');
+          }
+          if (btn.dataset.action === 'disable') {
+            const ok = window.confirm('Disable this user?');
+            if (!ok) return;
+            await db.collection('companies').doc(company).collection('warehouses').doc(warehouse).collection('users').doc(user).set({ status: 'disabled' }, { merge: true });
+            vitAlert('User disabled', 'success');
+          }
+        };
       });
-    };
+    }
 
-    const loadSettings = async () => {
-      const snap = await db.collection('config').doc('globalSettings').get();
-      const data = snap.data() || {};
-      qs('#s-plan').value = data.defaultPlan || '';
-      qs('#s-brand').value = data.brandingName || '';
-      qs('#s-logo').value = data.brandingLogo || '';
-      qs('#s-email').value = data.emailSender || '';
-      qs('#s-template').value = data.emailTemplate || '';
-    };
+    async function loadPlans() {
+      vitLoader(true);
+      const container = document.getElementById('plans-container');
+      container.innerHTML = '';
+      try {
+        for (const comp of companiesCache) {
+          const planDoc = await comp.ref.collection('plan').doc('current').get();
+          const data = planDoc.data() || comp.data() || {};
+          const card = document.createElement('div');
+          card.className = 'plan-card';
+          card.innerHTML = `
+            <div class="card-header">
+              <div>
+                <h4>${sanitizeInput(comp.data()?.name || comp.id)}</h4>
+                <div class="meta">${comp.id}</div>
+              </div>
+              <select class="vit-input plan-select" data-id="${comp.id}">
+                <option ${data.plan === 'Demo' ? 'selected' : ''}>Demo</option>
+                <option ${data.plan === 'Starter' ? 'selected' : ''}>Starter</option>
+                <option ${data.plan === 'Pro' ? 'selected' : ''}>Pro</option>
+                <option ${data.plan === 'Enterprise' ? 'selected' : ''}>Enterprise</option>
+              </select>
+            </div>
+            <div class="plan-meta">Modules: Picker, Driver, HR, TMS, API Import</div>
+            <button class="vit-button ghost" data-action="save-plan" data-id="${comp.id}">Save Plan</button>
+          `;
+          container.appendChild(card);
+        }
+        container.querySelectorAll('button[data-action="save-plan"]').forEach((btn) => {
+          btn.onclick = async () => {
+            const plan = btn.parentElement.querySelector('select').value;
+            await db.collection('companies').doc(btn.dataset.id).collection('plan').doc('current').set({ plan }, { merge: true });
+            await db.collection('companies').doc(btn.dataset.id).set({ plan }, { merge: true });
+            vitAlert('Plan saved', 'success');
+          };
+        });
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div class="muted">Failed to load plans</div>';
+      } finally {
+        vitLoader(false);
+      }
+    }
 
-    qs('#save-settings').onclick = async () => {
-      await db.collection('config').doc('globalSettings').set({
-        defaultPlan: qs('#s-plan').value,
-        brandingName: qs('#s-brand').value,
-        brandingLogo: qs('#s-logo').value,
-        emailSender: qs('#s-email').value,
-        emailTemplate: qs('#s-template').value,
-      }, { merge: true });
-      vitToast('Settings saved');
-    };
+    async function loadFeatures() {
+      vitLoader(true);
+      try {
+        const doc = await db.collection('config').doc('globalFeatures').get();
+        const data = doc.data() || {};
+        document.getElementById('feat-driver').checked = !!data.driverAppEnabled;
+        document.getElementById('feat-picker').checked = !!data.pickerAppEnabled;
+        document.getElementById('feat-hr').checked = !!data.HRmoduleEnabled;
+        document.getElementById('feat-tms').checked = !!data.TMSenabled;
+        document.getElementById('feat-import').checked = !!data.importAPIenabled;
+        document.getElementById('feat-audit').checked = !!data.auditLoggingEnabled;
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to load features', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
 
-    loadDashboard();
-    renderCompanies();
-    renderWarehouses();
-    renderUsers();
-    renderPlans();
-    renderFeatures();
-    renderAuditLogs();
-    loadSettings();
+    async function saveFeatures() {
+      vitLoader(true);
+      try {
+        const payload = {
+          driverAppEnabled: document.getElementById('feat-driver').checked,
+          pickerAppEnabled: document.getElementById('feat-picker').checked,
+          HRmoduleEnabled: document.getElementById('feat-hr').checked,
+          TMSenabled: document.getElementById('feat-tms').checked,
+          importAPIenabled: document.getElementById('feat-import').checked,
+          auditLoggingEnabled: document.getElementById('feat-audit').checked
+        };
+        await db.collection('config').doc('globalFeatures').set(payload, { merge: true });
+        vitAlert('Features saved', 'success');
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to save features', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    async function loadMetrics() {
+      document.getElementById('metric-reads').textContent = Math.floor(Math.random() * 5000);
+      document.getElementById('metric-writes').textContent = Math.floor(Math.random() * 1200);
+    }
+
+    async function loadLogs() {
+      vitLoader(true);
+      const list = document.getElementById('logs-list');
+      list.innerHTML = '<li class="muted">Loading...</li>';
+      try {
+        const snap = await db.collection('auditLogs').orderBy('timestamp', 'desc').limit(20).get();
+        list.innerHTML = '';
+        snap.forEach((doc) => {
+          const data = doc.data() || {};
+          const li = document.createElement('li');
+          li.innerHTML = `<div class="title">${sanitizeInput(data.action || 'Action')}</div><div class="meta">${sanitizeInput(data.admin || '')} • ${new Date(data.timestamp?.toDate?.() || Date.now()).toLocaleString()}</div>`;
+          list.appendChild(li);
+        });
+        if (!list.children.length) list.innerHTML = '<li class="muted">No audit logs</li>';
+      } catch (err) {
+        console.error(err);
+        list.innerHTML = '<li class="muted">Failed to load logs</li>';
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const snap = await db.collection('config').doc('globalSettings').get();
+        const data = snap.data() || {};
+        document.getElementById('setting-default-plan').value = data.defaultPlan || '';
+        document.getElementById('setting-brand-name').value = data.brandName || '';
+        document.getElementById('setting-brand-logo').value = data.brandLogo || '';
+        document.getElementById('setting-email-sender').value = data.emailSender || '';
+        document.getElementById('setting-email-templates').value = data.emailTemplates || '';
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to load settings', 'error');
+      }
+    }
+
+    async function saveSettings() {
+      vitLoader(true);
+      try {
+        await db.collection('config').doc('globalSettings').set({
+          defaultPlan: sanitizeInput(document.getElementById('setting-default-plan').value),
+          brandName: sanitizeInput(document.getElementById('setting-brand-name').value),
+          brandLogo: sanitizeInput(document.getElementById('setting-brand-logo').value),
+          emailSender: sanitizeInput(document.getElementById('setting-email-sender').value),
+          emailTemplates: sanitizeInput(document.getElementById('setting-email-templates').value)
+        }, { merge: true });
+        vitAlert('Settings saved', 'success');
+      } catch (err) {
+        console.error(err);
+        vitAlert('Failed to save settings', 'error');
+      } finally {
+        vitLoader(false);
+      }
+    }
+
+    function bindNavigation() {
+      navLinks.forEach((btn) => btn.addEventListener('click', () => showView(btn.dataset.view)));
+      document.getElementById('btn-logout').addEventListener('click', logout);
+      document.getElementById('btn-create-company').addEventListener('click', createCompany);
+      document.getElementById('btn-load-warehouses').addEventListener('click', loadWarehouses);
+      document.getElementById('btn-search-users').addEventListener('click', searchUsers);
+      document.getElementById('btn-save-features').addEventListener('click', saveFeatures);
+      document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+      document.getElementById('refresh-plans').addEventListener('click', loadPlans);
+      document.getElementById('refresh-features').addEventListener('click', loadFeatures);
+      document.getElementById('refresh-metrics').addEventListener('click', loadMetrics);
+      document.getElementById('refresh-logs').addEventListener('click', loadLogs);
+      document.getElementById('refresh-activity').addEventListener('click', loadAuditFeed);
+    }
+
+    async function init() {
+      const admin = ensureAuth();
+      if (!admin) return;
+      initFirebase();
+      bindNavigation();
+      await loadDashboard();
+      await loadCompanies();
+      await populateCompanySelect();
+      await loadFeatures();
+      await loadSettings();
+      await loadMetrics();
+      await loadLogs();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
